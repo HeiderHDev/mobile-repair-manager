@@ -4,5 +4,5 @@ export interface TableAction<T = unknown> {
     action: (item: T) => void;
     disabled?: (item: T) => boolean;
     visible?: (item: T) => boolean;
-    severity?: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'danger';
+    severity?: 'primary' | 'secondary' | 'success' | 'info' | 'danger';
 }
