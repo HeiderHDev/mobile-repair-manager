@@ -3,10 +3,11 @@ import { RouterOutlet } from '@angular/router';
 import { Loading } from './core/services/loading/loading';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Spinner } from './shared/components/spinner/spinner';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Spinner],
+  imports: [RouterOutlet, Spinner, ToastModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

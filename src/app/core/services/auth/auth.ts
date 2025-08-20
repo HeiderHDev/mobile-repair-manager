@@ -1,12 +1,13 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { AuthState } from '../../interfaces/auth/auth-state.interface';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { LoginRequest } from '../../interfaces/auth/login-request.interface';
 import { LoginResponse } from '../../interfaces/auth/login-response.interface';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { User } from '../../interfaces/auth/user.interface';
 import { environment } from '@env/environment';
+import { Notification } from '../notification/notification';
 
 @Injectable({
   providedIn: 'root'
@@ -32,6 +33,7 @@ export class Auth {
   
   private http = inject(HttpClient);
   private router = inject(Router);
+  private notificationService = inject(Notification);
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.API_URL}/login`, credentials).pipe(
@@ -40,6 +42,23 @@ export class Auth {
       }),
       catchError(error => {
         console.error('Login error:', error);
+        
+        // Manejar errores específicos de login
+        if (error.status === 400 || error.status === 401) {
+          const errorMessage = this.extractErrorMessage(error);
+          this.notificationService.error(
+            'Error de autenticación',
+            errorMessage || 'Usuario o contraseña incorrectos'
+          );
+        } else if (error.status === 0) {
+          this.notificationService.networkError();
+        } else {
+          this.notificationService.error(
+            'Error de conexión',
+            'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.'
+          );
+        }
+        
         return throwError(() => error);
       })
     );
@@ -58,6 +77,20 @@ export class Auth {
       }),
       catchError(error => {
         console.error('Register error:', error);
+        
+        if (error.status === 400) {
+          const errorMessage = this.extractErrorMessage(error);
+          this.notificationService.error(
+            'Error de registro',
+            errorMessage || 'Datos de registro inválidos'
+          );
+        } else {
+          this.notificationService.error(
+            'Error de registro',
+            'No se pudo completar el registro. Intenta nuevamente.'
+          );
+        }
+        
         return throwError(() => error);
       })
     );
@@ -107,6 +140,24 @@ export class Auth {
       user: null,
       token: null
     });
+  }
+
+  private extractErrorMessage(error: HttpErrorResponse): string | null {
+    if (error.error) {
+      if (typeof error.error === 'string') {
+        return error.error;
+      }
+      
+      if (error.error.message) {
+        return error.error.message;
+      }
+      
+      if (error.error.error) {
+        return error.error.error;
+      }
+    }
+    
+    return null;
   }
 
   getToken(): string | null {

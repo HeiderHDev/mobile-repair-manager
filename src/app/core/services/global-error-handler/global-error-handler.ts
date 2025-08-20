@@ -21,6 +21,10 @@ export class GlobalErrorHandler implements ErrorHandler {
   private handleHttpError(error: HttpErrorResponse): void {
     this.logError(error);
 
+    // No manejar errores en rutas de autenticación para evitar interferir con el login
+    if (error.url?.includes('/api/auth/')) {
+      return;
+    }
 
     switch (error.status) {
       case 0:
@@ -114,6 +118,11 @@ export class GlobalErrorHandler implements ErrorHandler {
       return;
     }
 
+    // No mostrar errores de ExpressionChangedAfterItHasBeenChecked en producción
+    if (error.message?.includes('ExpressionChangedAfterItHasBeenChecked')) {
+      return;
+    }
+
     this.notificationService.error(
       'Error de aplicación',
       'Ha ocurrido un error inesperado en la aplicación'
@@ -126,19 +135,19 @@ export class GlobalErrorHandler implements ErrorHandler {
         return error.error;
       }
       
-      if (error.error.message) {
+      if (error.error?.message) {
         return error.error.message;
       }
       
-      if (error.error.detail) {
+      if (error.error?.detail) {
         return error.error.detail;
       }
       
-      if (error.error.errors && Array.isArray(error.error.errors)) {
+      if (error.error?.errors && Array.isArray(error.error.errors)) {
         return error.error.errors.join(', ');
       }
       
-      if (typeof error.error === 'object') {
+      if (typeof error.error === 'object' && error.error !== null) {
         const keys = Object.keys(error.error);
         if (keys.length > 0) {
           const firstKey = keys[0];

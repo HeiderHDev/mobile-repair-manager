@@ -10,6 +10,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
 import { InputCustom } from '@shared/components/input-custom/input-custom';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +21,8 @@ import { InputCustom } from '@shared/components/input-custom/input-custom';
     ButtonModule,
     MessageModule,
     ProgressSpinnerModule,
-    InputCustom
+    InputCustom,
+    ToastModule
   ],
   templateUrl: './login.html',
   styles: []
@@ -79,9 +81,8 @@ export class Login implements OnDestroy {
           this.isLoading = false;
           this.router.navigate(['/clients']);
         },
-        error: (error) => {
+        error: () => {
           this.isLoading = false;
-          this.errorMessage = error.message || 'Error al iniciar sesión. Intenta nuevamente.';
         }
       });
   }
