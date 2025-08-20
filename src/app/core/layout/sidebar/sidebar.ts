@@ -1,216 +1,124 @@
-import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
+import { Component, effect, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { PanelMenuModule } from 'primeng/panelmenu';
-import { MenuItem } from 'primeng/api';
+import { LayoutOptions } from '../../services/layout-options';
+import { MenuUtils } from '@/app/shared/Utils/menu.utils';
+import { DrawerModule } from 'primeng/drawer';
+import { MenuItem } from '@/app/shared/interfaces/menu-item.interface';
+import { RippleModule } from 'primeng/ripple';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, PanelMenuModule],
+  imports: [CommonModule, RouterModule, ButtonModule, PanelMenuModule, DrawerModule, RippleModule],
   template: `
-    <!-- Overlay for mobile -->
-    <div 
-      *ngIf="isOpen" 
-      class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-      (click)="onCloseSidebar()">
-    </div>
-
-    <!-- Sidebar -->
-    <aside 
-      class="fixed top-16 left-0 z-50 w-64 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out transform"
-      [class.-translate-x-full]="!isOpen"
-      [class.translate-x-0]="isOpen">
-      
-      <!-- Sidebar Header -->
-      <div class="p-4 border-b border-gray-200">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-gray-800">Menú</h2>
-          <p-button 
+    <p-drawer
+      [(visible)]="sidebarVisible"
+      position="left"
+      [modal]="true"
+      styleClass="w-80"
+      [showCloseIcon]="false"
+    >
+      <ng-template pTemplate="header">
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <i class="pi pi-mobile text-white text-sm"></i>
+            </div>
+            <span class="font-semibold text-surface-900 dark:text-surface-0">
+              Repair Manager
+            </span>
+          </div>
+          <button
+            pButton
+            type="button"
             icon="pi pi-times"
             [text]="true"
-            severity="secondary"
-            size="small"
-            class="lg:hidden"
-            (click)="onCloseSidebar()">
-          </p-button>
+            class="p-button-rounded p-button-sm"
+            (click)="closeSidebar()"
+          ></button>
         </div>
-      </div>
+      </ng-template>
 
-      <!-- Navigation Menu -->
-      <nav class="p-4">
-        <p-panelMenu [model]="menuItems" [multiple]="false"></p-panelMenu>
-      </nav>
+      <ng-template pTemplate="content">
+        <div class="flex flex-col h-full">
+          <!-- Menu Items -->
+          <nav class="flex-1 py-4">
+            <ul class="space-y-2">
+              <li *ngFor="let item of visibleMenuItems">
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="bg-primary-50 dark:bg-primary-900 text-primary border-r-2 border-primary"
+                  class="flex items-center gap-3 px-4 py-3 text-surface-700 dark:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg mx-2 transition-colors duration-200"
+                  (click)="onMenuItemClick(item)"
+                  pRipple
+                >
+                  <i [class]="item.icon" class="text-lg"></i>
+                  <span class="font-medium">{{ item.label }}</span>
+                  <span 
+                    *ngIf="item.badge"
+                    [class]="'ml-auto px-2 py-1 text-xs rounded-full ' + (item.badgeStyleClass || 'bg-primary text-primary-contrast')"
+                  >
+                    {{ item.badge }}
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </nav>
 
-      <!-- Sidebar Footer -->
-      <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
-        <div class="text-xs text-gray-500 text-center">
-          <p>Mobile Repair Manager</p>
-          <p>v1.0.0</p>
+          <!-- Footer -->
+          <div class="border-t border-surface-200 dark:border-surface-700 pt-4 px-2">
+            <div class="text-center text-sm text-surface-500 dark:text-surface-400">
+              <p>Version 1.0.0</p>
+            </div>
+          </div>
         </div>
-      </div>
-    </aside>
+      </ng-template>
+    </p-drawer>
   `,
-  styles: [`
-    :host ::ng-deep .p-panelmenu {
-      border: none;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-panelmenu-panel {
-      border: none;
-      margin-bottom: 0.5rem;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-panelmenu-header {
-      border: none;
-      border-radius: 0.5rem;
-      margin-bottom: 0.25rem;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-panelmenu-header:not(.p-highlight):not(.p-disabled):hover {
-      background-color: #f3f4f6;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-panelmenu-header.p-highlight {
-      background-color: #dbeafe;
-      color: #1e40af;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-panelmenu-header-link {
-      padding: 0.75rem 1rem;
-      border-radius: 0.5rem;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-panelmenu-content {
-      border: none;
-      background: transparent;
-      padding: 0;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-menuitem-link {
-      padding: 0.5rem 1rem 0.5rem 2rem;
-      border-radius: 0.375rem;
-      margin: 0.125rem 0;
-      color: #6b7280;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-menuitem-link:hover {
-      background-color: #f9fafb;
-      color: #374151;
-    }
-
-    :host ::ng-deep .p-panelmenu .p-menuitem-link.router-link-active {
-      background-color: #dbeafe;
-      color: #1e40af;
-    }
-  `]
+  styles: []
 })
-export class Sidebar {
-  @Input() isOpen = true;
-  @Output() closeSidebar = new EventEmitter<void>();
+export class Sidebar implements OnInit {
+  private readonly layoutService = inject(LayoutOptions);
+  private readonly router = inject(Router);
 
-  menuItems: MenuItem[] = [
-    {
-      label: 'Dashboard',
-      icon: 'pi pi-home',
-      routerLink: '/dashboard'
-    },
-    {
-      label: 'Reparaciones',
-      icon: 'pi pi-wrench',
-      items: [
-        {
-          label: 'Nueva Reparación',
-          icon: 'pi pi-plus',
-          routerLink: '/repairs/new'
-        },
-        {
-          label: 'Lista de Reparaciones',
-          icon: 'pi pi-list',
-          routerLink: '/repairs'
-        },
-        {
-          label: 'Historial',
-          icon: 'pi pi-history',
-          routerLink: '/repairs/history'
-        }
-      ]
-    },
-    {
-      label: 'Clientes',
-      icon: 'pi pi-users',
-      items: [
-        {
-          label: 'Lista de Clientes',
-          icon: 'pi pi-list',
-          routerLink: '/customers'
-        },
-        {
-          label: 'Nuevo Cliente',
-          icon: 'pi pi-user-plus',
-          routerLink: '/customers/new'
-        }
-      ]
-    },
-    {
-      label: 'Inventario',
-      icon: 'pi pi-box',
-      items: [
-        {
-          label: 'Repuestos',
-          icon: 'pi pi-cog',
-          routerLink: '/inventory/parts'
-        },
-        {
-          label: 'Herramientas',
-          icon: 'pi pi-wrench',
-          routerLink: '/inventory/tools'
-        },
-        {
-          label: 'Stock Bajo',
-          icon: 'pi pi-exclamation-triangle',
-          routerLink: '/inventory/low-stock'
-        }
-      ]
-    },
-    {
-      label: 'Finanzas',
-      icon: 'pi pi-dollar',
-      items: [
-        {
-          label: 'Facturación',
-          icon: 'pi pi-file',
-          routerLink: '/finance/billing'
-        },
-        {
-          label: 'Reportes',
-          icon: 'pi pi-chart-bar',
-          routerLink: '/finance/reports'
-        }
-      ]
-    },
-    {
-      label: 'Configuración',
-      icon: 'pi pi-cog',
-      items: [
-        {
-          label: 'General',
-          icon: 'pi pi-sliders-h',
-          routerLink: '/settings/general'
-        },
-        {
-          label: 'Usuarios',
-          icon: 'pi pi-users',
-          routerLink: '/settings/users'
-        }
-      ]
+  protected sidebarVisible = false;
+  protected menuItems: MenuItem[] = [];
+  protected visibleMenuItems: MenuItem[] = [];
+
+  constructor() {
+    effect(() => {
+      this.sidebarVisible = this.layoutService.sidebarVisible();
+    });
+  }
+
+  ngOnInit(): void {
+    this.initializeMenu();
+  }
+
+  private initializeMenu(): void {
+    this.menuItems = [
+      MenuUtils.createMenuItem('dashboard', 'Dashboard', 'pi pi-home', '/dashboard'),
+      MenuUtils.createMenuItem('repairs', 'Reparaciones', 'pi pi-wrench', '/repairs', { 
+        badge: '5', 
+        badgeStyleClass: 'bg-orange-500 text-white' 
+      }),
+      MenuUtils.createMenuItem('inventory', 'Inventario', 'pi pi-box', '/inventory')
+    ];
+    
+    this.visibleMenuItems = MenuUtils.filterVisibleItems(this.menuItems);
+  }
+
+  protected onMenuItemClick(item: MenuItem): void {
+    if (item.command) {
+      item.command();
     }
-  ];
+    this.closeSidebar();
+  }
 
-  private router = inject(Router);
-
-  onCloseSidebar(): void {
-    this.closeSidebar.emit();
+  protected closeSidebar(): void {
+    this.layoutService.closeSidebar();
   }
 }

@@ -1,5 +1,5 @@
 import { NgxToastModule } from '@angular-magic/ngx-toast';
-import { ChangeDetectorRef, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Loading } from './core/services/loading';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -9,9 +9,9 @@ import { Spinner } from './shared/components/spinner/spinner';
   selector: 'app-root',
   imports: [RouterOutlet, NgxToastModule, Spinner],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.css'
 })
-export class App {
+export class App implements OnInit {
   protected readonly title = signal('MobileRepairManager');
   private readonly _loadingService = inject(Loading);
   private readonly cdr = inject(ChangeDetectorRef);

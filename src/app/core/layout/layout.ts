@@ -1,34 +1,27 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Navbar } from './navbar/navbar';
 import { Sidebar } from './sidebar/sidebar';
+import { LayoutOptions } from '../services/layout-options';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
   imports: [RouterOutlet, Navbar, Sidebar],
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-surface-50 dark:bg-surface-950">
       <!-- Navbar -->
-      <app-navbar (toggleSidebar)="toggleSidebar()"></app-navbar>
+      <app-navbar></app-navbar>
       
-      <!-- Main Content Area -->
-      <div class="flex">
-        <!-- Sidebar -->
-        <app-sidebar 
-          [isOpen]="sidebarOpen"
-          (closeSidebar)="closeSidebar()">
-        </app-sidebar>
-        
-        <!-- Main Content -->
-        <main class="flex-1 transition-all duration-300 ease-in-out"
-              [class.ml-64]="sidebarOpen"
-              [class.ml-0]="!sidebarOpen">
-          <div class="p-6">
-            <router-outlet></router-outlet>
-          </div>
-        </main>
-      </div>
+      <!-- Sidebar -->
+      <app-sidebar></app-sidebar>
+      
+      <!-- Main Content -->
+      <main class="transition-all duration-300">
+        <div class="container mx-auto px-4 py-6">
+          <router-outlet></router-outlet>
+        </div>
+      </main>
     </div>
   `,
   styles: [`
@@ -39,14 +32,10 @@ import { Sidebar } from './sidebar/sidebar';
     }
   `]
 })
-export class Layout {
-  sidebarOpen = true;
+export class Layout implements OnInit {
+  private readonly layoutService = inject(LayoutOptions);
 
-  toggleSidebar(): void {
-    this.sidebarOpen = !this.sidebarOpen;
-  }
-
-  closeSidebar(): void {
-    this.sidebarOpen = false;
+  ngOnInit(): void {
+    this.layoutService.initializeTheme();
   }
 }

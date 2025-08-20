@@ -1,5 +1,5 @@
 import { HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
-import { finalize, Observable, delay } from 'rxjs';
+import { finalize, Observable } from 'rxjs';
 import { Loading } from '../services/loading';
 import { inject } from '@angular/core';
 
