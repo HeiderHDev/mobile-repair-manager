@@ -1,202 +1,147 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { DocumentType } from '@clients/enum/document-type.enum';
+import { BehaviorSubject, Observable, map, tap, catchError, throwError } from 'rxjs';
+import { environment } from '@env/environment';
+
+// Interfaces (las que me mostraste antes)
 import { Client } from '@clients/interfaces/cliente.interface';
 import { CreateClientRequest } from '@clients/interfaces/create-client-request.interface';
 import { UpdateClientRequest } from '@clients/interfaces/update-client-request.interface';
-import { Notification } from '@core/services/notification/notification';
-import { delay, map, Observable, of, throwError } from 'rxjs';
+import { DocumentType } from '@clients/enum/document-type.enum';
+import { HttpService } from '@core/services/http-service/http';
+import { Auth } from '@core/services/auth/auth';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClientData {
-  private readonly http = inject(HttpClient);
-  private readonly notificationService = inject(Notification);
+  private readonly http = inject(HttpService);
+  private readonly auth = inject(Auth);
+  private readonly API_URL = `${environment.apiUrl || 'http://localhost:3000'}/api/customers`;
   
-  private clientsState = signal<Client[]>([]);
-  readonly clients = this.clientsState.asReadonly();
+  private readonly _clientsState$ = new BehaviorSubject<Client[]>([]);
+  private _clientsSignal = signal<Client[]>([]);
 
-  private mockClients: Client[] = [
-    {
-      id: '1',
-      firstName: 'Juan Carlos',
-      lastName: 'Pérez García',
-      email: 'juan.perez@email.com',
-      phone: '+57 300 123 4567',
-      address: 'Calle 15 #23-45, Bucaramanga',
-      documentType: DocumentType.CC,
-      documentNumber: '1098765432',
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-      isActive: true,
-      notes: 'Cliente frecuente, prefiere reparaciones rápidas'
-    },
-    {
-      id: '2',
-      firstName: 'María Elena',
-      lastName: 'Rodríguez Martínez',
-      email: 'maria.rodriguez@email.com',
-      phone: '+57 301 987 6543',
-      address: 'Carrera 27 #45-67, Bucaramanga',
-      documentType: DocumentType.CC,
-      documentNumber: '1087654321',
-      createdAt: new Date('2024-02-20'),
-      updatedAt: new Date('2024-02-20'),
-      isActive: true,
-      notes: 'Empresaria, tiene varios dispositivos'
-    },
-    {
-      id: '3',
-      firstName: 'Carlos Alberto',
-      lastName: 'González López',
-      email: 'carlos.gonzalez@email.com',
-      phone: '+57 302 456 7890',
-      address: 'Avenida 33 #12-34, Floridablanca',
-      documentType: DocumentType.CE,
-      documentNumber: 'CE123456789',
-      createdAt: new Date('2024-03-10'),
-      updatedAt: new Date('2024-03-10'),
-      isActive: false,
-      notes: 'Cliente internacional, comunicación en inglés'
-    },
-    {
-      id: '4',
-      firstName: 'Ana Sofía',
-      lastName: 'Hernández Ruiz',
-      email: 'ana.hernandez@email.com',
-      phone: '+57 303 789 0123',
-      documentType: DocumentType.CC,
-      documentNumber: '1076543210',
-      createdAt: new Date('2024-04-05'),
-      updatedAt: new Date('2024-04-05'),
-      isActive: true
-    }
-  ];
+  readonly clients$ = this._clientsState$.asObservable();
+  readonly clients = this._clientsSignal.asReadonly();
 
   constructor() {
     this.loadClients();
   }
 
+  private getAuthHeaders() {
+    const token = this.auth.getToken();
+    return this.http.setHeader('Authorization', `Bearer ${token}`);
+  }
+
   getClients(): Observable<Client[]> {
-    return of(this.mockClients).pipe(
-      delay(300),
+    return this.http.doGet<Client[]>(this.API_URL, this.getAuthHeaders()).pipe(
       map(clients => {
-        this.clientsState.set([...clients]);
+        this._clientsState$.next(clients);
+        this._clientsSignal.set(clients);
         return clients;
+      }),
+      catchError(error => {
+        console.error('Error loading clients:', error);
+        return throwError(() => error);
       })
     );
   }
 
-  getClientById(id: string): Observable<Client | null> {
-    const client = this.mockClients.find(c => c.id === id);
-    return of(client || null).pipe(delay(200));
+  getClientById(id: string): Observable<Client> {
+    return this.http.doGet<Client>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
+      catchError(error => {
+        console.error('Error loading client:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   createClient(clientData: CreateClientRequest): Observable<Client> {
-    if (this.mockClients.some(c => c.documentNumber === clientData.documentNumber)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'Ya existe un cliente con este número de documento' }
-      }));
-    }
-
-    if (this.mockClients.some(c => c.email === clientData.email)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'Ya existe un cliente con este correo electrónico' }
-      }));
-    }
-
-    const newClient: Client = {
-      id: (this.mockClients.length + 1).toString(),
-      ...clientData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true
-    };
-
-    this.mockClients.push(newClient);
-    this.clientsState.set([...this.mockClients]);
-
-    return of(newClient).pipe(delay(400));
+    return this.http.doPost<CreateClientRequest, Client>(
+      this.API_URL, 
+      clientData, 
+      this.getAuthHeaders()
+    ).pipe(
+      tap(newClient => {
+        const currentClients = this._clientsState$.value;
+        const updatedClients = [newClient, ...currentClients];
+        this._clientsState$.next(updatedClients);
+        this._clientsSignal.set(updatedClients);
+      }),
+      catchError(error => {
+        console.error('Error creating client:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   updateClient(clientData: UpdateClientRequest): Observable<Client> {
-    const clientIndex = this.mockClients.findIndex(c => c.id === clientData.id);
-    
-    if (clientIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Cliente no encontrado' }
-      }));
-    }
-
-    if (clientData.documentNumber && 
-        this.mockClients.some(c => c.documentNumber === clientData.documentNumber && c.id !== clientData.id)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'Ya existe un cliente con este número de documento' }
-      }));
-    }
-
-    if (clientData.email && 
-        this.mockClients.some(c => c.email === clientData.email && c.id !== clientData.id)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'Ya existe un cliente con este correo electrónico' }
-      }));
-    }
-
-    const updatedClient = {
-      ...this.mockClients[clientIndex],
-      ...clientData,
-      updatedAt: new Date()
-    };
-
-    this.mockClients[clientIndex] = updatedClient;
-    this.clientsState.set([...this.mockClients]);
-
-    return of(updatedClient).pipe(delay(400));
+    return this.http.doPut<UpdateClientRequest, Client>(
+      `${this.API_URL}/${clientData.id}`, 
+      clientData, 
+      this.getAuthHeaders()
+    ).pipe(
+      tap(updatedClient => {
+        const currentClients = this._clientsState$.value;
+        const updatedClients = currentClients.map(client => 
+          client.id === updatedClient.id ? updatedClient : client
+        );
+        this._clientsState$.next(updatedClients);
+        this._clientsSignal.set(updatedClients);
+      }),
+      catchError(error => {
+        console.error('Error updating client:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   deleteClient(id: string): Observable<boolean> {
-    const clientIndex = this.mockClients.findIndex(c => c.id === id);
-    
-    if (clientIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Cliente no encontrado' }
-      }));
-    }
-
-    this.mockClients.splice(clientIndex, 1);
-    this.clientsState.set([...this.mockClients]);
-
-    return of(true).pipe(delay(300));
+    return this.http.doDelete<{ message: string }>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
+      tap(() => {
+        const currentClients = this._clientsState$.value;
+        const filteredClients = currentClients.filter(client => client.id !== id);
+        this._clientsState$.next(filteredClients);
+        this._clientsSignal.set(filteredClients);
+      }),
+      map(() => true),
+      catchError(error => {
+        console.error('Error deleting client:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   toggleClientStatus(id: string): Observable<Client> {
-    const clientIndex = this.mockClients.findIndex(c => c.id === id);
-    
-    if (clientIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Cliente no encontrado' }
-      }));
-    }
-
-    this.mockClients[clientIndex].isActive = !this.mockClients[clientIndex].isActive;
-    this.mockClients[clientIndex].updatedAt = new Date();
-    this.clientsState.set([...this.mockClients]);
-
-    return of(this.mockClients[clientIndex]).pipe(delay(200));
+    return this.http.doPatch<{ message: string }, Client>(
+      `${this.API_URL}/${id}/toggle-status`, 
+      { message: 'Cliente desactivado' }, 
+      this.getAuthHeaders()
+    ).pipe(
+      tap(updatedClient => {
+        const currentClients = this._clientsState$.value;
+        const updatedClients = currentClients.map(client => 
+          client.id === updatedClient.id ? updatedClient : client
+        );
+        this._clientsState$.next(updatedClients);
+        this._clientsSignal.set(updatedClients);
+      }),
+      catchError(error => {
+        console.error('Error toggling client status:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   private loadClients(): void {
-    this.getClients().subscribe();
+    if (this.auth.isAuthenticated()) {
+      this.getClients().subscribe({
+        error: (error) => console.error('Error loading initial clients:', error)
+      });
+    }
   }
 
+  // Métodos de utilidad (mantener los que ya tienes)
   getDocumentTypeLabel(type: DocumentType): string {
     const labels = {
       [DocumentType.CC]: 'Cédula de Ciudadanía',

@@ -1,7 +1,7 @@
+import { RepairPriority } from "@clients/enum/repair-priority.enum";
 import { RepairStatus } from "@clients/enum/repair-status.enum";
 import { Client } from "./cliente.interface";
 import { Phone } from "./phone.interface";
-import { RepairPriority } from "@clients/enum/repair-priority.enum";
 
 export interface Repair {
     id: string;

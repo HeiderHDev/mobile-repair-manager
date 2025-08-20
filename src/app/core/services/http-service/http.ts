@@ -1,6 +1,6 @@
-import { Observable } from 'rxjs';
-import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
 export interface Options {
   headers?: HttpHeaders;

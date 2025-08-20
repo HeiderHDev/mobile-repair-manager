@@ -1,18 +1,18 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input, OnDestroy, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { TableModule } from 'primeng/table';
-import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { CardModule } from 'primeng/card';
-import { TagModule } from 'primeng/tag';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { ToastModule } from 'primeng/toast';
-import { ConfirmationService, MessageService } from 'primeng/api';
-import { TableAction } from '@shared/interfaces/table/table-action.interface';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 import { BaseEntity } from '@shared/interfaces/table/base-entity.interface';
+import { TableAction } from '@shared/interfaces/table/table-action.interface';
 import { TableConfig } from '@shared/interfaces/table/table-config.interface';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
+import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-data-table',

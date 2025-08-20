@@ -1,205 +1,186 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { RepairPriority } from '@clients/enum/repair-priority.enum';
-import { RepairStatus } from '@clients/enum/repair-status.enum';
-import { CreateRepairRequest } from '@clients/interfaces/create-reapair-request.interface';
+import { BehaviorSubject, Observable, map, tap, catchError, throwError } from 'rxjs';
+import { environment } from '@env/environment';
+
+// Interfaces
 import { Repair } from '@clients/interfaces/repair.interface';
+import { CreateRepairRequest } from '@clients/interfaces/create-reapair-request.interface';
 import { UpdateRepairRequest } from '@clients/interfaces/update-repair-request.interface';
-import { Notification } from '@core/services/notification/notification';
-import { delay, map, Observable, of, throwError } from 'rxjs';
+import { RepairStatus } from '@clients/enum/repair-status.enum';
+import { RepairPriority } from '@clients/enum/repair-priority.enum';
+import { HttpService } from '@core/services/http-service/http';
+import { Auth } from '@core/services/auth/auth';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RepairPhoneClient {
-  private readonly http = inject(HttpClient);
-  private readonly notificationService = inject(Notification);
+  private readonly http = inject(HttpService);
+  private readonly auth = inject(Auth);
+  private readonly API_URL = `${environment.apiUrl || 'http://localhost:3000'}/api/repairs`;
   
-  private repairsState = signal<Repair[]>([]);
-  readonly repairs = this.repairsState.asReadonly();
+  private readonly _repairsState$ = new BehaviorSubject<Repair[]>([]);
+  private _repairsSignal = signal<Repair[]>([]);
 
-  private mockRepairs: Repair[] = [
-    {
-      id: '1',
-      phoneId: '1',
-      clientId: '1',
-      issue: 'Pantalla quebrada',
-      description: 'Pantalla completamente fragmentada después de caída. Touch no responde.',
-      status: RepairStatus.COMPLETED,
-      priority: RepairPriority.HIGH,
-      estimatedCost: 150000,
-      finalCost: 145000,
-      estimatedDuration: 4,
-      actualDuration: 3.5,
-      startDate: new Date('2024-01-20'),
-      estimatedCompletionDate: new Date('2024-01-21'),
-      completionDate: new Date('2024-01-21'),
-      technicianNotes: 'Reemplazo de pantalla original. Calibración exitosa.',
-      clientNotes: 'Cliente satisfecho con la reparación',
-      createdAt: new Date('2024-01-20'),
-      updatedAt: new Date('2024-01-21')
-    },
-    {
-      id: '2',
-      phoneId: '1',
-      clientId: '1',
-      issue: 'Batería se agota rápido',
-      description: 'La batería dura menos de 4 horas con uso normal.',
-      status: RepairStatus.IN_PROGRESS,
-      priority: RepairPriority.MEDIUM,
-      estimatedCost: 80000,
-      estimatedDuration: 2,
-      startDate: new Date('2024-04-15'),
-      estimatedCompletionDate: new Date('2024-04-16'),
-      technicianNotes: 'Diagnóstico: batería degradada. Reemplazo necesario.',
-      createdAt: new Date('2024-04-15'),
-      updatedAt: new Date('2024-04-15')
-    },
-    {
-      id: '3',
-      phoneId: '2',
-      clientId: '1',
-      issue: 'No carga',
-      description: 'El dispositivo no responde al conectar el cargador.',
-      status: RepairStatus.WAITING_PARTS,
-      priority: RepairPriority.HIGH,
-      estimatedCost: 120000,
-      estimatedDuration: 6,
-      startDate: new Date('2024-04-10'),
-      estimatedCompletionDate: new Date('2024-04-12'),
-      technicianNotes: 'Puerto de carga dañado. Esperando repuesto.',
-      createdAt: new Date('2024-04-10'),
-      updatedAt: new Date('2024-04-11')
-    },
-    {
-      id: '4',
-      phoneId: '3',
-      clientId: '2',
-      issue: 'Cámara borrosa',
-      description: 'Las fotos salen borrosas y con manchas.',
-      status: RepairStatus.PENDING,
-      priority: RepairPriority.LOW,
-      estimatedCost: 95000,
-      estimatedDuration: 3,
-      startDate: new Date('2024-04-18'),
-      estimatedCompletionDate: new Date('2024-04-19'),
-      createdAt: new Date('2024-04-18'),
-      updatedAt: new Date('2024-04-18')
-    }
-  ];
+  readonly repairs$ = this._repairsState$.asObservable();
+  readonly repairs = this._repairsSignal.asReadonly();
 
   constructor() {
     this.loadRepairs();
   }
 
+  private getAuthHeaders() {
+    const token = this.auth.getToken();
+    return this.http.setHeader('Authorization', `Bearer ${token}`);
+  }
+
   getRepairs(): Observable<Repair[]> {
-    return of(this.mockRepairs).pipe(
-      delay(300),
-      map(repairs => {
-        this.repairsState.set([...repairs]);
+    return this.http.doGet<{ repairs: Repair[] } | Repair[]>(this.API_URL, this.getAuthHeaders()).pipe(
+      map(response => {
+        // El backend devuelve { repairs: [], page, limit, total } o directamente Repair[]
+        const repairs = Array.isArray(response) ? response : response.repairs;
+        this._repairsState$.next(repairs);
+        this._repairsSignal.set(repairs);
         return repairs;
+      }),
+      catchError(error => {
+        console.error('Error loading repairs:', error);
+        return throwError(() => error);
       })
     );
   }
 
   getRepairsByPhoneId(phoneId: string): Observable<Repair[]> {
-    const phoneRepairs = this.mockRepairs
-      .filter(r => r.phoneId === phoneId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return of(phoneRepairs).pipe(delay(200));
+    return this.http.doGet<Repair[]>(
+      `${this.API_URL}/phone/${phoneId}`, 
+      this.getAuthHeaders()
+    ).pipe(
+      map(repairs => {
+        // Ordenar por fecha (más reciente primero)
+        return repairs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }),
+      catchError(error => {
+        console.error('Error loading repairs by phone:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getRepairsByClientId(clientId: string): Observable<Repair[]> {
-    const clientRepairs = this.mockRepairs
-      .filter(r => r.clientId === clientId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return of(clientRepairs).pipe(delay(200));
+    return this.http.doGet<Repair[]>(
+      `${this.API_URL}/customer/${clientId}`, 
+      this.getAuthHeaders()
+    ).pipe(
+      map(repairs => {
+        // Ordenar por fecha (más reciente primero)
+        return repairs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }),
+      catchError(error => {
+        console.error('Error loading repairs by client:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getAllRepairsOrderedByDate(): Observable<Repair[]> {
-    const sortedRepairs = [...this.mockRepairs]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return of(sortedRepairs).pipe(delay(300));
+    return this.getRepairs().pipe(
+      map(repairs => repairs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+    );
   }
 
-  getRepairById(id: string): Observable<Repair | null> {
-    const repair = this.mockRepairs.find(r => r.id === id);
-    return of(repair || null).pipe(delay(200));
+  getRepairById(id: string): Observable<Repair> {
+    return this.http.doGet<Repair>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
+      catchError(error => {
+        console.error('Error loading repair:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   createRepair(repairData: CreateRepairRequest): Observable<Repair> {
-    const newRepair: Repair = {
-      id: (this.mockRepairs.length + 1).toString(),
-      clientId: repairData.phoneId,
-      ...repairData,
-      status: RepairStatus.PENDING,
-      startDate: new Date(),
-      estimatedCompletionDate: this.calculateEstimatedCompletion(repairData.estimatedDuration),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    this.mockRepairs.push(newRepair);
-    this.repairsState.set([...this.mockRepairs]);
-
-    return of(newRepair).pipe(delay(400));
+    return this.http.doPost<CreateRepairRequest, Repair>(
+      this.API_URL, 
+      repairData, 
+      this.getAuthHeaders()
+    ).pipe(
+      tap(newRepair => {
+        const currentRepairs = this._repairsState$.value;
+        const updatedRepairs = [newRepair, ...currentRepairs];
+        this._repairsState$.next(updatedRepairs);
+        this._repairsSignal.set(updatedRepairs);
+      }),
+      catchError(error => {
+        console.error('Error creating repair:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   updateRepair(repairData: UpdateRepairRequest): Observable<Repair> {
-    const repairIndex = this.mockRepairs.findIndex(r => r.id === repairData.id);
-    
-    if (repairIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Reparación no encontrada' }
-      }));
-    }
-
-    const updatedRepair = {
-      ...this.mockRepairs[repairIndex],
-      ...repairData,
-      updatedAt: new Date()
-    };
-
-    if (repairData.status === RepairStatus.COMPLETED && !updatedRepair.completionDate) {
-      updatedRepair.completionDate = new Date();
-    }
-
-    this.mockRepairs[repairIndex] = updatedRepair;
-    this.repairsState.set([...this.mockRepairs]);
-
-    return of(updatedRepair).pipe(delay(400));
+    return this.http.doPut<UpdateRepairRequest, Repair>(
+      `${this.API_URL}/${repairData.id}`, 
+      repairData, 
+      this.getAuthHeaders()
+    ).pipe(
+      tap(updatedRepair => {
+        const currentRepairs = this._repairsState$.value;
+        const updatedRepairs = currentRepairs.map(repair => 
+          repair.id === updatedRepair.id ? updatedRepair : repair
+        );
+        this._repairsState$.next(updatedRepairs);
+        this._repairsSignal.set(updatedRepairs);
+      }),
+      catchError(error => {
+        console.error('Error updating repair:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   deleteRepair(id: string): Observable<boolean> {
-    const repairIndex = this.mockRepairs.findIndex(r => r.id === id);
-    
-    if (repairIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Reparación no encontrada' }
-      }));
-    }
+    return this.http.doDelete<{ message: string }>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
+      tap(() => {
+        const currentRepairs = this._repairsState$.value;
+        const filteredRepairs = currentRepairs.filter(repair => repair.id !== id);
+        this._repairsState$.next(filteredRepairs);
+        this._repairsSignal.set(filteredRepairs);
+      }),
+      map(() => true),
+      catchError(error => {
+        console.error('Error deleting repair:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 
-    this.mockRepairs.splice(repairIndex, 1);
-    this.repairsState.set([...this.mockRepairs]);
-
-    return of(true).pipe(delay(300));
+  getRepairStatistics(): Observable<{
+    total: number;
+    pending: number;
+    inProgress: number;
+    completed: number;
+  }> {
+    return this.http.doGet<{
+      total: number;
+      pending: number;
+      inProgress: number;
+      completed: number;
+    }>(`${this.API_URL}/statistics`, this.getAuthHeaders()).pipe(
+      catchError(error => {
+        console.error('Error loading repair statistics:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   private loadRepairs(): void {
-    this.getRepairs().subscribe();
+    if (this.auth.isAuthenticated()) {
+      this.getRepairs().subscribe({
+        error: (error) => console.error('Error loading initial repairs:', error)
+      });
+    }
   }
 
-  private calculateEstimatedCompletion(hours: number): Date {
-    const now = new Date();
-    const workingHoursPerDay = 8;
-    const daysNeeded = Math.ceil(hours / workingHoursPerDay);
-    const completionDate = new Date(now);
-    completionDate.setDate(now.getDate() + daysNeeded);
-    return completionDate;
-  }
-
+  // Métodos de utilidad (mantener los existentes)
   getStatusLabel(status: RepairStatus): string {
     const labels = {
       [RepairStatus.PENDING]: 'Pendiente',
@@ -273,5 +254,14 @@ export class RepairPhoneClient {
       currency: 'COP',
       minimumFractionDigits: 0
     }).format(amount);
+  }
+
+  private calculateEstimatedCompletion(hours: number): Date {
+    const now = new Date();
+    const workingHoursPerDay = 8;
+    const daysNeeded = Math.ceil(hours / workingHoursPerDay);
+    const completionDate = new Date(now);
+    completionDate.setDate(now.getDate() + daysNeeded);
+    return completionDate;
   }
 }

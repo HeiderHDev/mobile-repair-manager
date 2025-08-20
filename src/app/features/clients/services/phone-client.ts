@@ -1,176 +1,136 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { PhoneCondition } from '@clients/enum/phone-condition.enum';
 import { CreatePhoneRequest } from '@clients/interfaces/create-phone-request.interface';
 import { Phone } from '@clients/interfaces/phone.interface';
 import { UpdatePhoneRequest } from '@clients/interfaces/update-phone-request.interface';
-import { Notification } from '@core/services/notification/notification';
-import { delay, map, Observable, of, throwError } from 'rxjs';
+import { Auth } from '@core/services/auth/auth';
+import { HttpService } from '@core/services/http-service/http';
+import { environment } from '@env/environment';
+import { BehaviorSubject, catchError, map, Observable, tap, throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PhoneClient {
-  private readonly http = inject(HttpClient);
-  private readonly notificationService = inject(Notification);
+  private readonly http = inject(HttpService);
+  private readonly auth = inject(Auth);
+  private readonly API_URL = `${environment.apiUrl || 'http://localhost:3000'}/api/phones`;
   
-  private phonesState = signal<Phone[]>([]);
-  readonly phones = this.phonesState.asReadonly();
+  private readonly _phonesState$ = new BehaviorSubject<Phone[]>([]);
+  private _phonesSignal = signal<Phone[]>([]);
 
-  private mockPhones: Phone[] = [
-    {
-      id: '1',
-      clientId: '1',
-      brand: 'Samsung',
-      model: 'Galaxy S23',
-      imei: '123456789012345',
-      color: 'Negro',
-      purchaseDate: new Date('2023-03-15'),
-      warrantyExpiry: new Date('2025-03-15'),
-      condition: PhoneCondition.GOOD,
-      createdAt: new Date('2024-01-20'),
-      updatedAt: new Date('2024-01-20'),
-      isActive: true,
-      notes: 'Protector de pantalla instalado'
-    },
-    {
-      id: '2',
-      clientId: '1',
-      brand: 'iPhone',
-      model: '14 Pro',
-      imei: '987654321098765',
-      color: 'Azul',
-      purchaseDate: new Date('2023-09-22'),
-      warrantyExpiry: new Date('2024-09-22'),
-      condition: PhoneCondition.EXCELLENT,
-      createdAt: new Date('2024-02-10'),
-      updatedAt: new Date('2024-02-10'),
-      isActive: true
-    },
-    {
-      id: '3',
-      clientId: '2',
-      brand: 'Xiaomi',
-      model: 'Redmi Note 12',
-      imei: '456789012345678',
-      color: 'Blanco',
-      condition: PhoneCondition.FAIR,
-      createdAt: new Date('2024-03-05'),
-      updatedAt: new Date('2024-03-05'),
-      isActive: true,
-      notes: 'Pequeños rayones en la pantalla'
-    },
-    {
-      id: '4',
-      clientId: '3',
-      brand: 'Huawei',
-      model: 'P50 Pro',
-      imei: '789012345678901',
-      color: 'Dorado',
-      condition: PhoneCondition.DAMAGED,
-      createdAt: new Date('2024-04-12'),
-      updatedAt: new Date('2024-04-12'),
-      isActive: false,
-      notes: 'Pantalla quebrada, necesita reemplazo'
-    }
-  ];
+  readonly phones$ = this._phonesState$.asObservable();
+  readonly phones = this._phonesSignal.asReadonly();
 
   constructor() {
     this.loadPhones();
   }
 
+  private getAuthHeaders() {
+    const token = this.auth.getToken();
+    return this.http.setHeader('Authorization', `Bearer ${token}`);
+  }
+
   getPhones(): Observable<Phone[]> {
-    return of(this.mockPhones).pipe(
-      delay(300),
-      map((phones: Phone[]) => {
-        this.phonesState.set([...phones]);
+    return this.http.doGet<Phone[]>(this.API_URL, this.getAuthHeaders()).pipe(
+      map(phones => {
+        this._phonesState$.next(phones);
+        this._phonesSignal.set(phones);
         return phones;
+      }),
+      catchError(error => {
+        console.error('Error loading phones:', error);
+        return throwError(() => error);
       })
     );
   }
 
   getPhonesByClientId(clientId: string): Observable<Phone[]> {
-    const clientPhones = this.mockPhones.filter(p => p.clientId === clientId);
-    return of(clientPhones).pipe(delay(200));
+    return this.http.doGet<Phone[]>(
+      `${this.API_URL}/customer/${clientId}`, 
+      this.getAuthHeaders()
+    ).pipe(
+      catchError(error => {
+        console.error('Error loading phones by client:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
-  getPhoneById(id: string): Observable<Phone | null> {
-    const phone = this.mockPhones.find(p => p.id === id);
-    return of(phone || null).pipe(delay(200));
+  getPhoneById(id: string): Observable<Phone> {
+    return this.http.doGet<Phone>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
+      catchError(error => {
+        console.error('Error loading phone:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   createPhone(phoneData: CreatePhoneRequest): Observable<Phone> {
-    if (this.mockPhones.some(p => p.imei === phoneData.imei)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'Ya existe un teléfono registrado con este IMEI' }
-      }));
-    }
-
-    const newPhone: Phone = {
-      id: (this.mockPhones.length + 1).toString(),
-      ...phoneData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isActive: true
-    };
-
-    this.mockPhones.push(newPhone);
-    this.phonesState.set([...this.mockPhones]);
-
-    return of(newPhone).pipe(delay(400));
+    return this.http.doPost<CreatePhoneRequest, Phone>(
+      this.API_URL, 
+      phoneData, 
+      this.getAuthHeaders()
+    ).pipe(
+      tap(newPhone => {
+        const currentPhones = this._phonesState$.value;
+        const updatedPhones = [newPhone, ...currentPhones];
+        this._phonesState$.next(updatedPhones);
+        this._phonesSignal.set(updatedPhones);
+      }),
+      catchError(error => {
+        console.error('Error creating phone:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   updatePhone(phoneData: UpdatePhoneRequest): Observable<Phone> {
-    const phoneIndex = this.mockPhones.findIndex(p => p.id === phoneData.id);
-    
-    if (phoneIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Teléfono no encontrado' }
-      }));
-    }
-
-    if (phoneData.imei && 
-        this.mockPhones.some(p => p.imei === phoneData.imei && p.id !== phoneData.id)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'Ya existe un teléfono registrado con este IMEI' }
-      }));
-    }
-
-    const updatedPhone = {
-      ...this.mockPhones[phoneIndex],
-      ...phoneData,
-      updatedAt: new Date()
-    };
-
-    this.mockPhones[phoneIndex] = updatedPhone;
-    this.phonesState.set([...this.mockPhones]);
-
-    return of(updatedPhone).pipe(delay(400));
+    return this.http.doPut<UpdatePhoneRequest, Phone>(
+      `${this.API_URL}/${phoneData.id}`, 
+      phoneData, 
+      this.getAuthHeaders()
+    ).pipe(
+      tap(updatedPhone => {
+        const currentPhones = this._phonesState$.value;
+        const updatedPhones = currentPhones.map(phone => 
+          phone.id === updatedPhone.id ? updatedPhone : phone
+        );
+        this._phonesState$.next(updatedPhones);
+        this._phonesSignal.set(updatedPhones);
+      }),
+      catchError(error => {
+        console.error('Error updating phone:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   deletePhone(id: string): Observable<boolean> {
-    const phoneIndex = this.mockPhones.findIndex(p => p.id === id);
-    
-    if (phoneIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Teléfono no encontrado' }
-      }));
-    }
-
-    this.mockPhones.splice(phoneIndex, 1);
-    this.phonesState.set([...this.mockPhones]);
-
-    return of(true).pipe(delay(300));
+    return this.http.doDelete<{ message: string }>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
+      tap(() => {
+        const currentPhones = this._phonesState$.value;
+        const filteredPhones = currentPhones.filter(phone => phone.id !== id);
+        this._phonesState$.next(filteredPhones);
+        this._phonesSignal.set(filteredPhones);
+      }),
+      map(() => true),
+      catchError(error => {
+        console.error('Error deleting phone:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   private loadPhones(): void {
-    this.getPhones().subscribe();
+    if (this.auth.isAuthenticated()) {
+      this.getPhones().subscribe({
+        error: (error) => console.error('Error loading initial phones:', error)
+      });
+    }
   }
 
+  // Métodos de utilidad (mantener los existentes)
   getConditionLabel(condition: PhoneCondition): string {
     const labels = {
       [PhoneCondition.EXCELLENT]: 'Excelente',
