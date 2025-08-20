@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { AvatarModule } from 'primeng/avatar';
-import { LayoutOptions } from '../../services/layout-options';
+import { LayoutOptions } from '../../services/layout/layout-options';
 
 @Component({
   selector: 'app-navbar',
@@ -19,6 +19,7 @@ import { LayoutOptions } from '../../services/layout-options';
             [text]="true"
             class="p-button-rounded p-button-text"
             (click)="toggleSidebar()"
+            aria-label="Toggle sidebar"
           ></button>
           
           <h1 class="text-xl font-semibold text-surface-900 dark:text-surface-0 hidden sm:block">
@@ -34,6 +35,7 @@ import { LayoutOptions } from '../../services/layout-options';
             [text]="true"
             class="p-button-rounded"
             (click)="toggleDarkMode()"
+            aria-label="Toggle dark mode"
           ></button>
 
           <p-avatar 

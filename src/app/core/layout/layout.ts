@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Navbar } from './navbar/navbar';
 import { Sidebar } from './sidebar/sidebar';
-import { LayoutOptions } from '../services/layout-options';
+import { LayoutOptions } from '../services/layout/layout-options';
 
 @Component({
   selector: 'app-layout',
