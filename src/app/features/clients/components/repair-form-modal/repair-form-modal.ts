@@ -171,8 +171,8 @@ export class RepairFormModal implements OnChanges {
       issue: formValue.issue,
       description: formValue.description,
       priority: formValue.priority,
-      estimatedCost: formValue.estimatedCost,
-      estimatedDuration: formValue.estimatedDuration,
+      estimatedCost: Number(formValue.estimatedCost),
+      estimatedDuration: Number(formValue.estimatedDuration),
       technicianNotes: formValue.technicianNotes,
       clientNotes: formValue.clientNotes
     };
@@ -206,10 +206,10 @@ export class RepairFormModal implements OnChanges {
       description: formValue.description,
       priority: formValue.priority,
       status: formValue.status,
-      estimatedCost: formValue.estimatedCost,
-      estimatedDuration: formValue.estimatedDuration,
-      finalCost: formValue.finalCost,
-      actualDuration: formValue.actualDuration,
+      estimatedCost: Number(formValue.estimatedCost),
+      estimatedDuration: Number(formValue.estimatedDuration),
+      finalCost: Number(formValue.finalCost),
+      actualDuration: Number(formValue.actualDuration),
       technicianNotes: formValue.technicianNotes,
       clientNotes: formValue.clientNotes
     };

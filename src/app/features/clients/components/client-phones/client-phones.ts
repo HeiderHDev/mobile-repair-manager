@@ -108,10 +108,6 @@ export class ClientPhones implements OnInit {
         );
       },
       error: (error) => {
-        this.notificationService.error(
-          'Error al eliminar teléfono',
-          'Ocurrió un error al eliminar el teléfono'
-        );
         console.error(error);
       }
     });
@@ -127,18 +123,10 @@ export class ClientPhones implements OnInit {
         if (client) {
           this.client.set(client);
         } else {
-          this.notificationService.error(
-            'Cliente no encontrado',
-            'El cliente solicitado no existe'
-          );
           this.goBackToClients();
         }
       },
       error: (error) => {
-        this.notificationService.error(
-          'Error al cargar cliente',
-          'Ocurrió un error al cargar el cliente'
-        );
         console.error(error);
         this.goBackToClients();
       }
@@ -151,10 +139,6 @@ export class ClientPhones implements OnInit {
         this.phones.set(phones);
       },
       error: (error) => {
-        this.notificationService.error(
-          'Error al cargar teléfonos',
-          'Ocurrió un error al cargar los teléfonos'
-        );
         console.error(error);
       }
     });
