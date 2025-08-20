@@ -1,30 +1,35 @@
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { CanActivateFn } from '@angular/router';
-import { Auth } from '../services/auth/auth';
+import { CanActivateFn, Router } from '@angular/router';
+import { Auth } from '@core/services/auth/auth';
 
-export const authGuard: CanActivateFn = (state) => {
+export const authGuard: CanActivateFn = async (route, state) => {
   const authService = inject(Auth);
   const router = inject(Router);
 
-  if (authService.isAuthenticated()) {
+  try {
+    const isAuthenticated = await authService.isUserAuthenticated();
+    
+    if (!isAuthenticated) {
+      console.warn('Usuario no autenticado, redirigiendo al login');
+      router.navigate(['/auth/login'], { 
+        queryParams: { returnUrl: state.url } 
+      });
+      return false;
+    }
+
+    // Verificar si el usuario está activo
+    const currentUser = authService.currentUser();
+    if (currentUser && !currentUser.isActive) {
+      console.warn('Usuario inactivo, redirigiendo al login');
+      await authService.logout();
+      router.navigate(['/auth/login']);
+      return false;
+    }
+
     return true;
+  } catch (error) {
+    console.error('Error en auth guard:', error);
+    router.navigate(['/auth/login']);
+    return false;
   }
-
-  router.navigate(['/auth/login'], { 
-    queryParams: { returnUrl: state.url } 
-  });
-  return false;
-};
-
-export const noAuthGuard: CanActivateFn = () => {
-  const authService = inject(Auth);
-  const router = inject(Router);
-
-  if (!authService.isAuthenticated()) {
-    return true;
-  }
-
-  router.navigate(['/dashboard']);
-  return false;
 };
