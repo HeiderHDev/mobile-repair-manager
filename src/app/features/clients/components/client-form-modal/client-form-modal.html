@@ -1,0 +1,129 @@
+<p-dialog
+      [header]="dialogTitle()"
+      [modal]="true"
+      [visible]="visible()"
+      [style]="{ width: '600px' }"
+      [draggable]="false"
+      [resizable]="false"
+      (onHide)="handleClose()"
+    >
+      <form [formGroup]="clientForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        
+        <!-- Row 1: First Name & Last Name -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <app-input-custom
+            label="Nombres"
+            type="text"
+            placeholder="Nombres del cliente"
+            formControlName="firstName"
+            [maxlength]="50"
+          ></app-input-custom>
+
+          <app-input-custom
+            label="Apellidos"
+            type="text"
+            placeholder="Apellidos del cliente"
+            formControlName="lastName"
+            [maxlength]="50"
+          ></app-input-custom>
+        </div>
+
+        <!-- Row 2: Document Type & Document Number -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <app-input-custom
+            label="Tipo de Documento"
+            type="select"
+            placeholder="Selecciona tipo"
+            formControlName="documentType"
+            [options]="documentTypeOptions"
+            optionLabel="label"
+            optionValue="value"
+          ></app-input-custom>
+
+          <app-input-custom
+            label="Número de Documento"
+            type="text"
+            placeholder="Número de documento"
+            formControlName="documentNumber"
+            [maxlength]="20"
+          ></app-input-custom>
+        </div>
+
+        <!-- Row 3: Email & Phone -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <app-input-custom
+            label="Correo Electrónico"
+            type="email"
+            placeholder="correo@ejemplo.com"
+            formControlName="email"
+            [maxlength]="100"
+          ></app-input-custom>
+
+          <app-input-custom
+            label="Teléfono"
+            type="text"
+            placeholder="+57 300 123 4567"
+            formControlName="phone"
+            [maxlength]="20"
+          ></app-input-custom>
+        </div>
+
+        <!-- Row 4: Address -->
+        <app-input-custom
+          label="Dirección"
+          type="text"
+          placeholder="Dirección completa (opcional)"
+          formControlName="address"
+          [maxlength]="200"
+        ></app-input-custom>
+
+        <!-- Row 5: Notes -->
+        <div class="form-field mb-6">
+          <label for="notes" class="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-2">
+            Notas
+          </label>
+          <textarea
+            id="notes"
+            formControlName="notes"
+            placeholder="Notas adicionales sobre el cliente (opcional)"
+            rows="3"
+            class="w-full p-3 border border-surface-300 dark:border-surface-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-surface-800 dark:text-surface-0"
+            maxlength="500"
+          ></textarea>
+        </div>
+
+        <!-- Active Status (only for edit) -->
+        @if (isEditMode()) {
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              formControlName="isActive"
+              class="p-checkbox"
+            />
+            <label for="isActive" class="text-sm text-surface-600 dark:text-surface-400">
+              Cliente activo
+            </label>
+          </div>
+        }
+
+      </form>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            icon="pi pi-times"
+            [text]="true"
+            (onClick)="handleClose()"
+          ></p-button>
+          <p-button
+            [label]="submitButtonLabel()"
+            icon="pi pi-check"
+            [loading]="isLoading()"
+            [disabled]="clientForm.invalid || isLoading()"
+            (onClick)="onSubmit()"
+          ></p-button>
+        </div>
+      </ng-template>
+    </p-dialog>

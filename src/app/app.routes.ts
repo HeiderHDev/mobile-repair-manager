@@ -15,7 +15,7 @@ export const routes: Routes = [
     children: [
       {
         path: 'login',
-        loadComponent: () => import('@features/auth/login/login').then(c => c.Login)
+        loadComponent: () => import('@auth/login/login').then(c => c.Login)
       },
       {
         path: '',
@@ -29,10 +29,6 @@ export const routes: Routes = [
     component: Layout,
     canActivate: [authGuard],
     children: [
-      {
-        path: 'dashboard',
-        loadComponent: () => import('@features/dashboard/dashboard.component').then(c => c.DashboardComponent)
-      },
       {
         path: 'users',
         loadChildren: () => import('@users/users.routes').then(r => r.usersRoutes)

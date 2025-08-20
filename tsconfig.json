@@ -20,6 +20,7 @@
       "@core/*": ["src/app/core/*"],
       "@shared/*": ["src/app/shared/*"],
       "@layout/*": ["src/app/core/layout/*"],
+      "@auth/*": ["src/app/features/auth/*"],
       "@users/*": ["src/app/features/users/*"],
       "@clients/*": ["src/app/features/clients/*"]
     }
