@@ -1,7 +1,7 @@
 import { PhoneCondition } from "../enum/phone-condition.enum";
 
 export interface CreatePhoneRequest {
-    clientId: string;
+    customerId: string;
     brand: string;
     model: string;
     imei: string;

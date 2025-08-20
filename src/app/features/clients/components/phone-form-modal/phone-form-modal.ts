@@ -142,7 +142,7 @@ export class PhoneFormModal implements OnChanges {
   private createPhone(): void {
     const formValue = this.phoneForm.value;
     const createRequest: CreatePhoneRequest = {
-      clientId: this.clientId(),
+      customerId: this.clientId(),
       brand: formValue.brand,
       model: formValue.model,
       imei: formValue.imei,
@@ -178,7 +178,7 @@ export class PhoneFormModal implements OnChanges {
     const formValue = this.phoneForm.value;
     const updateRequest: UpdatePhoneRequest = {
       id: this.phone()!.id,
-      clientId: this.clientId(),
+      customerId: this.clientId(),
       brand: formValue.brand,
       model: formValue.model,
       imei: formValue.imei,

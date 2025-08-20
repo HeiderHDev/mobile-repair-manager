@@ -21,7 +21,7 @@
           <app-input-custom
             label="Modelo"
             type="text"
-            placeholder="Galaxy S23, iPhone 14..."
+            placeholder="S23, 14, Note 8 Pro..."
             formControlName="model"
             [maxlength]="50"
           ></app-input-custom>
@@ -48,7 +48,6 @@
         <app-input-custom
           label="Condición del Dispositivo"
           type="select"
-          placeholder="Selecciona la condición del teléfono"
           formControlName="condition"
           [options]="conditionOptions"
           optionLabel="label"
@@ -70,6 +69,7 @@
               [maxDate]="today"
               class="w-full"
               styleClass="w-full"
+              appendTo="body"
             ></p-datepicker>
           </div>
 
@@ -87,6 +87,7 @@
               [minDate]="today"
               class="w-full"
               styleClass="w-full"
+              appendTo="body"
             ></p-datepicker>
           </div>
         </div>

@@ -441,7 +441,7 @@ const routes: Routes = [
 
 ## 👨‍💻 Autor
 
-**Heider Rey Hernández** - Desarrollo Full Stack
+**Heider Rey Hernández** - Desarrollador Full Stack
 
 ---
 
