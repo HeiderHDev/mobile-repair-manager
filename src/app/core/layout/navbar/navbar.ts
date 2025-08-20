@@ -41,7 +41,6 @@ import { Auth } from '@core/services/auth/auth';
             aria-label="Toggle dark mode"
           ></button>
 
-          <!-- Avatar con menú desplegable -->
           <div class="relative">
             <p-avatar 
               [label]="getUserInitials()"
@@ -122,11 +121,9 @@ export class Navbar {
 
   private openProfile(): void {
     // TODO: Implementar navegación al perfil
-    console.log('Abrir perfil de usuario');
   }
 
   private openSettings(): void {
     // TODO: Implementar navegación a configuración
-    console.log('Abrir configuración');
   }
 }
