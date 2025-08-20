@@ -1,14 +1,23 @@
 import { InjectionToken } from '@angular/core';
 
+export interface ValidationError {
+  requiredLength?: number;
+  actualLength?: number;
+  min?: number;
+  max?: number;
+  pattern?: string;
+  [key: string]: unknown;
+}
+
 export interface FormErrorsMessages {
-  required: (error?: any) => string;
-  email: (error?: any) => string;
-  minlength: (error?: any) => string;
-  maxlength: (error?: any) => string;
-  min: (error?: any) => string;
-  max: (error?: any) => string;
-  pattern: (error?: any) => string;
-  [key: string]: (error?: any) => string;
+  required: (error?: ValidationError) => string;
+  email: (error?: ValidationError) => string;
+  minlength: (error?: ValidationError) => string;
+  maxlength: (error?: ValidationError) => string;
+  min: (error?: ValidationError) => string;
+  max: (error?: ValidationError) => string;
+  pattern: (error?: ValidationError) => string;
+  [key: string]: (error?: ValidationError) => string;
 }
 
 export const FORM_ERRORS_MESSAGES: FormErrorsMessages = {
