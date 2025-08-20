@@ -65,7 +65,6 @@ export class UserData {
   }
 
   getUsers(): Observable<User[]> {
-    // Simulate API call
     return of(this.mockUsers).pipe(
       delay(500),
       map(users => {

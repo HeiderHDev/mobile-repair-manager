@@ -1,4 +1,3 @@
-// src/app/core/services/global-error-handler.service.ts
 import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';

@@ -17,7 +17,6 @@ export class ClientData {
   private clientsState = signal<Client[]>([]);
   readonly clients = this.clientsState.asReadonly();
 
-  // Mock data for development
   private mockClients: Client[] = [
     {
       id: '1',
@@ -95,7 +94,6 @@ export class ClientData {
   }
 
   createClient(clientData: CreateClientRequest): Observable<Client> {
-    // Validate unique document number
     if (this.mockClients.some(c => c.documentNumber === clientData.documentNumber)) {
       return throwError(() => ({
         status: 409,
@@ -103,7 +101,6 @@ export class ClientData {
       }));
     }
 
-    // Validate unique email
     if (this.mockClients.some(c => c.email === clientData.email)) {
       return throwError(() => ({
         status: 409,
@@ -135,7 +132,6 @@ export class ClientData {
       }));
     }
 
-    // Validate unique document number (excluding current client)
     if (clientData.documentNumber && 
         this.mockClients.some(c => c.documentNumber === clientData.documentNumber && c.id !== clientData.id)) {
       return throwError(() => ({
@@ -144,7 +140,6 @@ export class ClientData {
       }));
     }
 
-    // Validate unique email (excluding current client)
     if (clientData.email && 
         this.mockClients.some(c => c.email === clientData.email && c.id !== clientData.id)) {
       return throwError(() => ({
@@ -202,7 +197,6 @@ export class ClientData {
     this.getClients().subscribe();
   }
 
-  // Utility methods
   getDocumentTypeLabel(type: DocumentType): string {
     const labels = {
       [DocumentType.CC]: 'Cédula de Ciudadanía',
@@ -227,7 +221,6 @@ export class ClientData {
   }
 
   formatPhone(phone: string): string {
-    // Simple phone formatting
     return phone.replace(/(\+57\s?)(\d{3})(\s?)(\d{3})(\s?)(\d{4})/, '+57 $2 $4 $6');
   }
 }

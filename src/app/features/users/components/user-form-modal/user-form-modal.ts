@@ -27,25 +27,20 @@ import { Dialog } from 'primeng/dialog';
   `
 })
 export class UserFormModal implements OnChanges {
-  // Input signals
   readonly visible = input<boolean>(false);
   readonly user = input<User | null>(null);
 
-  // Output events
   readonly visibleChange = output<boolean>();
   readonly userSaved = output<User>();
 
-  // Internal state
   isLoading = signal(false);
   private readonly userService = inject(UserData);
   private readonly notificationService = inject(Notification);
   private readonly fb = inject(FormBuilder);
 
-  // Form
   userForm: FormGroup;
   roleOptions = this.userService.getRoleOptions();
 
-  // Computed properties
   readonly isEditMode = computed(() => !!this.user());
   readonly dialogTitle = computed(() => 
     this.isEditMode() ? 'Editar Usuario' : 'Crear Usuario'

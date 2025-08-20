@@ -33,7 +33,6 @@ export class Auth {
   private router = inject(Router);
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    // Simulamos una llamada a la API
     return this.simulateLogin(credentials).pipe(
       tap(response => {
         this.setAuthData(response.token, response.user);
@@ -51,7 +50,6 @@ export class Auth {
   }
 
   private simulateLogin(credentials: LoginRequest): Observable<LoginResponse> {
-    // Simulación de autenticación - reemplazar con llamada real a la API
     const validCredentials = {
       username: 'admin',
       password: 'admin123'
