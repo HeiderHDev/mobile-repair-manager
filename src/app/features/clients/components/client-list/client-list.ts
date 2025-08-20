@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { DataTable } from '@shared/components/data-table/data-table';
+import { DataTable, PaginatedResponse } from '@shared/components/data-table/data-table';
 import { ClientFormModal } from '../client-form-modal/client-form-modal';
 import { ClientData } from '@clients/services/client-data';
 import { Notification } from '@core/services/notification/notification';
@@ -29,13 +29,14 @@ export class ClientList implements OnInit {
   private readonly notificationService = inject(Notification);
   private readonly router = inject(Router);
 
-  // Signals para el estado de la lista
-  paginatedData = signal<any>(null);
+  private readonly _paginatedData = signal<PaginatedResponse<Client> | null>(null);
+  readonly paginatedData = computed<PaginatedResponse<Client> | Client[]>(() => 
+    this._paginatedData() || []
+  );
   showClientModal = signal(false);
   selectedClient = signal<Client | null>(null);
   isLoading = signal(false);
   
-  // Signals para el control de paginación
   currentPage = signal(1);
   pageSize = signal(10);
   searchTerm = signal('');
@@ -196,7 +197,7 @@ export class ClientList implements OnInit {
     
     this.clientService.getClientsPaginated(params).subscribe({
       next: (response) => {
-        this.paginatedData.set(response);
+        this._paginatedData.set(response);
         this.isLoading.set(false);
       },
       error: (error) => {

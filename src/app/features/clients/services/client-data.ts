@@ -1,27 +1,14 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { DocumentType } from '@clients/enum/document-type.enum';
+import { ClientQueryParams } from '@clients/interfaces/client-query-params.interface';
 import { Client } from '@clients/interfaces/cliente.interface';
 import { CreateClientRequest } from '@clients/interfaces/create-client-request.interface';
+import { PaginatedClientsResponse } from '@clients/interfaces/paginated-clients-response.interface';
 import { UpdateClientRequest } from '@clients/interfaces/update-client-request.interface';
 import { Auth } from '@core/services/auth/auth';
 import { HttpService } from '@core/services/http-service/http';
 import { environment } from '@env/environment';
 import { BehaviorSubject, catchError, map, Observable, tap, throwError } from 'rxjs';
-
-interface PaginatedClientsResponse {
-  page: number;
-  limit: number;
-  total: number;
-  next: string | null;
-  prev: string | null;
-  customers: Client[];
-}
-
-interface ClientQueryParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-}
 
 @Injectable({
   providedIn: 'root'
