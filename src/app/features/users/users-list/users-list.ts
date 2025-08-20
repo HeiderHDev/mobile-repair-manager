@@ -161,8 +161,7 @@ export class UsersList implements OnInit {
         this.users.set(users);
         this.isLoading.set(false);
       },
-      error: (error) => {
-        this.notificationService.error('Error al cargar usuarios', error);
+      error: () => {
         this.isLoading.set(false);
       }
     });
@@ -184,8 +183,7 @@ export class UsersList implements OnInit {
         this.loadUsers();
         this.notificationService.userDeleted('Usuario');
       },
-      error: (error) => {
-        this.notificationService.error('Error al eliminar usuario', error);
+      error: () => {
         this.loadUsers();
       }
     });
@@ -201,8 +199,7 @@ export class UsersList implements OnInit {
           `El usuario ha sido ${status}`
         );
       },
-      error: (error) => {
-        this.notificationService.error('Error al cambiar estado del usuario', error);
+      error: () => {
         this.loadUsers();
       }
     });

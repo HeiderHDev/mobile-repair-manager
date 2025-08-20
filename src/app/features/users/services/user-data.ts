@@ -43,7 +43,6 @@ export class UserData {
       }),
       catchError(error => {
         console.error('Error loading users:', error);
-        this.notificationService.error('Error', 'No se pudieron cargar los usuarios');
         return throwError(() => error);
       })
     );
