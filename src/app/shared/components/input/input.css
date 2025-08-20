@@ -1,0 +1,23 @@
+/* Input component styles */
+.input-container {
+  width: 100%;
+}
+
+/* Custom styles for PrimeNG components */
+:host ::ng-deep .p-float-label {
+  width: 100%;
+}
+
+:host ::ng-deep .p-inputtext,
+:host ::ng-deep .p-password input {
+  width: 100%;
+}
+
+:host ::ng-deep .p-invalid {
+  border-color: #ef4444;
+}
+
+:host ::ng-deep .p-invalid:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.2);
+}

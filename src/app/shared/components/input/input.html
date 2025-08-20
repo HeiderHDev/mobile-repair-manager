@@ -1,0 +1,50 @@
+<div class="input-container w-full mb-6">
+  <p-floatlabel class="w-full">
+    @if (type() !== 'password') {
+      <input
+        pInputText
+        [id]="generatedId()"
+        [type]="type()"
+        [value]="currentValue()"
+        [placeholder]="placeholder()"
+        [attr.maxlength]="maxlength()"
+        [attr.max]="max()"
+        [attr.min]="min()"
+        [disabled]="isDisabled()"
+        [class]="computedInputClasses()"
+        (input)="onInput($event)"
+        (blur)="onBlur()"
+        (focus)="onFocus()"
+        class="w-full"
+      />
+    } @else {
+      <p-password
+        [id]="generatedId()"
+        [ngModel]="currentValue()"
+        [placeholder]="placeholder()"
+        [disabled]="isDisabled()"
+        [feedback]="showPasswordFeedback()"
+        [toggleMask]="showPasswordToggle()"
+        [class]="computedInputClasses()"
+        (ngModelChange)="onPasswordInput($event)"
+        (onBlur)="onBlur()"
+        (onFocus)="onFocus()"
+        styleClass="w-full"
+        inputStyleClass="w-full"
+      ></p-password>
+    }
+
+    <label [for]="generatedId()" class="text-surface-600 dark:text-surface-400">
+      {{ label() }}
+      @if (computedIsRequired()) {
+        <span class="text-red-500 ml-1">*</span>
+      }
+    </label>
+  </p-floatlabel>
+
+  @if (computedShowError()) {
+    <small class="text-red-500 text-sm mt-2 block">
+      {{ computedErrorMessage() }}
+    </small>
+  }
+</div>
