@@ -1,0 +1,156 @@
+<p-dialog
+      [header]="dialogTitle()"
+      [modal]="true"
+      [visible]="visible()"
+      [style]="{ width: '600px' }"
+      [draggable]="false"
+      [resizable]="false"
+      (onHide)="handleClose()"
+    >
+      <form [formGroup]="phoneForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        
+        <!-- Row 1: Brand & Model -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <app-input-custom
+            label="Marca"
+            type="text"
+            placeholder="Samsung, iPhone, Xiaomi..."
+            formControlName="brand"
+            [maxlength]="50"
+          ></app-input-custom>
+
+          <app-input-custom
+            label="Modelo"
+            type="text"
+            placeholder="Galaxy S23, iPhone 14..."
+            formControlName="model"
+            [maxlength]="50"
+          ></app-input-custom>
+        </div>
+
+        <!-- Row 2: IMEI & Color -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <app-input-custom
+            label="IMEI"
+            type="text"
+            placeholder="123456789012345"
+            formControlName="imei"
+            [maxlength]="15"
+          ></app-input-custom>
+
+          <app-input-custom
+            label="Color"
+            type="text"
+            placeholder="Negro, Blanco, Azul... (opcional)"
+            formControlName="color"
+            [maxlength]="30"
+          ></app-input-custom>
+        </div>
+
+        <!-- Row 3: Condition -->
+        <app-input-custom
+          label="Condición del Dispositivo"
+          type="select"
+          placeholder="Selecciona la condición del teléfono"
+          formControlName="condition"
+          [options]="conditionOptions"
+          optionLabel="label"
+          optionValue="value"
+        ></app-input-custom>
+
+        <!-- Row 4: Purchase Date & Warranty Expiry -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-field mb-6">
+            <label for="purchase-date" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+              <i class="pi pi-calendar mr-1"></i>
+              Fecha de Compra
+            </label>
+            <p-datepicker
+              id="purchase-date"
+              formControlName="purchaseDate"
+              [showIcon]="true"
+              placeholder="Selecciona la fecha de compra"
+              dateFormat="dd/mm/yy"
+              [maxDate]="today"
+              class="w-full"
+              styleClass="w-full"
+            ></p-datepicker>
+          </div>
+
+          <div class="form-field mb-6">
+            <label for="warranty-expiry" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+              <i class="pi pi-shield mr-1"></i>
+              Vencimiento de Garantía
+            </label>
+            <p-datepicker
+              id="warranty-expiry"
+              formControlName="warrantyExpiry"
+              [showIcon]="true"
+              placeholder="Selecciona fecha de vencimiento"
+              dateFormat="dd/mm/yy"
+              [minDate]="today"
+              class="w-full"
+              styleClass="w-full"
+            ></p-datepicker>
+          </div>
+        </div>
+
+        <!-- Row 5: Notes -->
+        <div class="form-field mb-6">
+          <label for="notes-textarea" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+            <i class="pi pi-file-edit mr-1"></i>
+            Notas Adicionales
+          </label>
+          <textarea
+            id="notes-textarea"
+            formControlName="notes"
+            placeholder="Información adicional sobre el dispositivo, accesorios incluidos, daños previos, etc. (opcional)"
+            rows="3"
+            maxlength="500"
+            class="w-full p-3 border border-surface-300 dark:border-surface-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-surface-800 dark:text-surface-0 resize-none"
+          ></textarea>
+          <div class="flex justify-between items-center mt-1">
+            <small class="text-surface-500 dark:text-surface-400 text-xs">
+              Campo opcional para información adicional
+            </small>
+            <small class="text-surface-500 dark:text-surface-400 text-xs">
+              {{ phoneForm.get('notes')?.value?.length || 0 }}/500
+            </small>
+          </div>
+        </div>
+
+        <!-- Active Status (only for edit) -->
+        @if (isEditMode()) {
+          <div class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
+            <p-checkbox
+              formControlName="isActive"
+              inputId="isActive"
+              [binary]="true"
+            ></p-checkbox>
+            <label for="isActive" class="text-sm font-medium text-surface-700 dark:text-surface-300 cursor-pointer">
+              <i class="pi pi-mobile mr-1"></i>
+              Dispositivo activo en el sistema
+            </label>
+          </div>
+        }
+
+      </form>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            icon="pi pi-times"
+            [text]="true"
+            (onClick)="handleClose()"
+          ></p-button>
+          <p-button
+            [label]="submitButtonLabel()"
+            icon="pi pi-check"
+            [loading]="isLoading()"
+            [disabled]="phoneForm.invalid || isLoading()"
+            (onClick)="onSubmit()"
+          ></p-button>
+        </div>
+      </ng-template>
+    </p-dialog>
