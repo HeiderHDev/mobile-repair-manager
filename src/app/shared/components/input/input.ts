@@ -27,12 +27,13 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { FloatLabelModule } from 'primeng/floatlabel';
+import { SelectModule } from 'primeng/select';
 import { Subject, takeUntil } from 'rxjs';
 import { FORM_ERRORS, FormErrorsMessages, ValidationError } from '@core/constants/form-errors-messages';
 
 
 @Component({
-  selector: 'app-input',
+  selector: 'app-input-custom',
   imports: [
     CommonModule,
     FormsModule,
@@ -40,18 +41,19 @@ import { FORM_ERRORS, FormErrorsMessages, ValidationError } from '@core/constant
     InputTextModule,
     PasswordModule,
     FloatLabelModule,
+    SelectModule,
   ],
   templateUrl: './input.html',
   styleUrl: './input.css',
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => Input),
+      useExisting: forwardRef(() => InputCustom),
       multi: true,
     },
   ],
 })
-export class Input implements OnInit, OnDestroy {
+export class InputCustom implements OnInit, OnDestroy {
   readonly maxlength = input<number | null>(null);
   readonly max = input<number | null>(null);
   readonly min = input<number | null>(null);
@@ -60,6 +62,9 @@ export class Input implements OnInit, OnDestroy {
   readonly placeholder = input<string>('');
   readonly showPasswordFeedback = input<boolean>(false);
   readonly showPasswordToggle = input<boolean>(true);
+  readonly options = input<Record<string, unknown>[]>([]);
+  readonly optionLabel = input<string>('label');
+  readonly optionValue = input<string>('value');
 
   private readonly disabledState = signal(false);
   private readonly valueState = signal('');
@@ -173,6 +178,13 @@ export class Input implements OnInit, OnDestroy {
 
   onFocus(): void {
     this.touchedState.set(false);
+    this.updateControlState();
+  }
+
+  onSelectChange(value: unknown): void {
+    const stringValue = String(value ?? '');
+    this.valueState.set(stringValue);
+    this.onChange?.(stringValue);
     this.updateControlState();
   }
 

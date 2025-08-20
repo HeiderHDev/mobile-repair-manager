@@ -1,1 +1,96 @@
-<p>user-form-modal works!</p>
+<p-dialog
+      [header]="dialogTitle()"
+      [modal]="true"
+      [visible]="visible()"
+      [style]="{ width: '500px' }"
+      [draggable]="false"
+      [resizable]="false"
+      (onHide)="handleClose()"
+    >
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        
+        <!-- Username -->
+        <app-input-custom
+          label="Nombre de Usuario"
+          type="text"
+          placeholder="Ingresa el nombre de usuario"
+          formControlName="username"
+          [maxlength]="50"
+        ></app-input-custom>
+
+        <!-- Email -->
+        <app-input-custom
+          label="Correo Electrónico"
+          type="email"
+          placeholder="ejemplo@correo.com"
+          formControlName="email"
+          [maxlength]="100"
+        ></app-input-custom>
+
+        <!-- Full Name -->
+        <app-input-custom
+          label="Nombre Completo"
+          type="text"
+          placeholder="Nombre y apellidos"
+          formControlName="fullName"
+          [maxlength]="100"
+        ></app-input-custom>
+
+        <!-- Password (only for create) -->
+        @if (!isEditMode()) {
+          <app-input-custom
+            label="Contraseña"
+            type="password"
+            placeholder="Contraseña segura"
+            formControlName="password"
+            [showPasswordFeedback]="true"
+            [showPasswordToggle]="true"
+          ></app-input-custom>
+        }
+
+        <!-- Role -->
+        <app-input-custom
+          label="Rol"
+          type="select"
+          placeholder="Selecciona un rol"
+          formControlName="role"
+          [options]="roleOptions"
+          optionLabel="label"
+          optionValue="value"
+        ></app-input-custom>
+
+        <!-- Active Status (only for edit) -->
+        @if (isEditMode()) {
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              formControlName="isActive"
+              class="p-checkbox"
+            />
+            <label for="isActive" class="text-sm text-surface-600 dark:text-surface-400">
+              Usuario activo
+            </label>
+          </div>
+        }
+
+      </form>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            icon="pi pi-times"
+            [text]="true"
+            (onClick)="handleClose()"
+          ></p-button>
+          <p-button
+            [label]="submitButtonLabel()"
+            icon="pi pi-check"
+            [loading]="isLoading()"
+            [disabled]="userForm.invalid || isLoading()"
+            (onClick)="onSubmit()"
+          ></p-button>
+        </div>
+      </ng-template>
+    </p-dialog>

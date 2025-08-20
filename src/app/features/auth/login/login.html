@@ -27,17 +27,17 @@
             ></p-message>
 
             <!-- Username Field -->
-            <app-input
+            <app-input-custom
               label="Usuario"
               type="text"
               placeholder="Ingresa tu usuario"
               formControlName="username"
               [maxlength]="50"
               aria-label="Usuario"
-            ></app-input>
+            ></app-input-custom>
 
             <!-- Password Field -->
-            <app-input
+            <app-input-custom
               label="Contraseña"
               type="password"
               placeholder="Ingresa tu contraseña"
@@ -45,7 +45,7 @@
               [showPasswordFeedback]="false"
               [showPasswordToggle]="true"
               aria-label="Contraseña"
-            ></app-input>
+            ></app-input-custom>
 
             <!-- Submit Button -->
             <button

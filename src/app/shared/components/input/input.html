@@ -1,6 +1,21 @@
 <div class="input-container w-full mb-6">
   <p-floatlabel class="w-full">
-    @if (type() !== 'password') {
+    @if (type() === 'select') {
+      <p-select
+        [id]="generatedId()"
+        [ngModel]="currentValue()"
+        [options]="options()"
+        [optionLabel]="optionLabel()"
+        [optionValue]="optionValue()"
+        [placeholder]="placeholder()"
+        [disabled]="isDisabled()"
+        [class]="computedInputClasses()"
+        (ngModelChange)="onSelectChange($event)"
+        (onBlur)="onBlur()"
+        (onFocus)="onFocus()"
+        styleClass="w-full"
+      ></p-select>
+    } @else if (type() !== 'password') {
       <input
         pInputText
         [id]="generatedId()"

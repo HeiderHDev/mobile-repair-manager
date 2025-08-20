@@ -5,11 +5,11 @@ import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { Input } from '@shared/components/input/input';
 import { Auth } from '@core/services/auth/auth';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
+import { InputCustom } from '@shared/components/input/input';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +20,8 @@ import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
     ButtonModule,
     MessageModule,
     ProgressSpinnerModule,
-    Input],
+    InputCustom
+  ],
   templateUrl: './login.html',
   styles: []
 })
