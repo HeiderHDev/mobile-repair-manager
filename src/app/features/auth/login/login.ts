@@ -62,7 +62,7 @@ export class Login implements OnDestroy {
 
   private checkAuthStatus(): void {
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/clients']);
     }
   }
 
@@ -77,7 +77,7 @@ export class Login implements OnDestroy {
       .subscribe({
         next: () => {
           this.isLoading = false;
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/clients']);
         },
         error: (error) => {
           this.isLoading = false;

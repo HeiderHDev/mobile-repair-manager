@@ -4,9 +4,9 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { LoginRequest } from '../../interfaces/auth/login-request.interface';
 import { LoginResponse } from '../../interfaces/auth/login-response.interface';
-import { catchError, Observable, of, tap } from 'rxjs';
-import { UserRole } from '../../enum/auth/user-role.enum';
+import { catchError, Observable, tap, throwError } from 'rxjs';
 import { User } from '../../interfaces/auth/user.interface';
+import { environment } from '@env/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -14,6 +14,7 @@ import { User } from '../../interfaces/auth/user.interface';
 export class Auth {
   private readonly TOKEN_KEY = 'auth_token';
   private readonly USER_KEY = 'auth_user';
+  private readonly API_URL = `${environment.apiUrl}/api/auth`;
   
   private _authState = signal<AuthState>({
     isAuthenticated: false,
@@ -33,13 +34,31 @@ export class Auth {
   private router = inject(Router);
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.simulateLogin(credentials).pipe(
+    return this.http.post<LoginResponse>(`${this.API_URL}/login`, credentials).pipe(
       tap(response => {
         this.setAuthData(response.token, response.user);
       }),
       catchError(error => {
         console.error('Login error:', error);
-        throw error;
+        return throwError(() => error);
+      })
+    );
+  }
+
+  register(userData: {
+    username: string;
+    email: string;
+    fullName: string;
+    password: string;
+    role: string;
+  }): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.API_URL}/register`, userData).pipe(
+      tap(response => {
+        this.setAuthData(response.token, response.user);
+      }),
+      catchError(error => {
+        console.error('Register error:', error);
+        return throwError(() => error);
       })
     );
   }
@@ -47,34 +66,6 @@ export class Auth {
   logout(): void {
     this.clearAuthData();
     this.router.navigate(['/auth/login']);
-  }
-
-  private simulateLogin(credentials: LoginRequest): Observable<LoginResponse> {
-    const validCredentials = {
-      username: 'admin',
-      password: 'admin123'
-    };
-
-    if (credentials.username === validCredentials.username && 
-        credentials.password === validCredentials.password) {
-      
-      const mockResponse: LoginResponse = {
-        token: 'mock-jwt-token-' + Date.now(),
-        user: {
-          id: '1',
-          username: credentials.username,
-          email: 'admin@repairshop.com',
-          fullName: 'Administrador',
-          role: 'admin' as UserRole,
-          isActive: true
-        },
-        expiresIn: 86400
-      };
-
-      return of(mockResponse);
-    } else {
-      throw new Error('Credenciales inválidas');
-    }
   }
 
   private initializeAuth(): void {

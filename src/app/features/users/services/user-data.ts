@@ -1,207 +1,198 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { User } from '../interfaces/user.interface';
-import { HttpClient } from '@angular/common/http';
-import { delay, map, Observable, of, throwError } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { map, Observable, tap, throwError, catchError } from 'rxjs';
 import { UserRole } from '@core/enum/auth/user-role.enum';
 import { CreateUserRequest } from '../interfaces/create-user-request.interface';
 import { UpdateUserRequest } from '../interfaces/update-user-request.interface';
 import { Notification } from '@core/services/notification/notification';
+import { Auth } from '@core/services/auth/auth';
+import { environment } from '@env/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserData {
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(Auth);
   private readonly notificationService = inject(Notification);
+  private readonly API_URL = `${environment.apiUrl || 'http://localhost:3000'}/api/users`;
   
   private usersState = signal<User[]>([]);
   readonly users = this.usersState.asReadonly();
-
-  private mockUsers: User[] = [
-    {
-      id: '1',
-      username: 'superadmin',
-      email: 'superadmin@repairshop.com',
-      fullName: 'Super Administrador',
-      role: UserRole.SUPER_ADMIN,
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      lastLogin: new Date('2025-01-19')
-    },
-    {
-      id: '2',
-      username: 'admin1',
-      email: 'admin1@repairshop.com',
-      fullName: 'Juan Pérez',
-      role: UserRole.ADMIN,
-      isActive: true,
-      createdAt: new Date('2024-02-20'),
-      lastLogin: new Date('2025-01-18')
-    },
-    {
-      id: '3',
-      username: 'operator1',
-      email: 'operator1@repairshop.com',
-      fullName: 'María García',
-      role: UserRole.ADMIN,
-      isActive: false,
-      createdAt: new Date('2024-03-10'),
-      lastLogin: new Date('2025-01-15')
-    },
-    {
-      id: '4',
-      username: 'admin2',
-      email: 'admin2@repairshop.com',
-      fullName: 'Carlos Rodriguez',
-      role: UserRole.ADMIN,
-      isActive: true,
-      createdAt: new Date('2024-04-05'),
-      lastLogin: new Date('2025-01-17')
-    }
-  ];
 
   constructor() {
     this.loadUsers();
   }
 
+  private getAuthHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+  }
+
   getUsers(): Observable<User[]> {
-    return of(this.mockUsers).pipe(
-      delay(500),
+    return this.http.get<User[]>(this.API_URL, { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
       map(users => {
         this.usersState.set([...users]);
         return users;
+      }),
+      catchError(error => {
+        console.error('Error loading users:', error);
+        this.notificationService.error('Error', 'No se pudieron cargar los usuarios');
+        return throwError(() => error);
       })
     );
   }
 
   getUserById(id: string): Observable<User | null> {
-    const user = this.mockUsers.find(u => u.id === id);
-    return of(user || null).pipe(delay(300));
+    return this.http.get<User>(`${this.API_URL}/${id}`, { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
+      catchError(error => {
+        if (error.status === 404) {
+          return throwError(() => ({
+            status: 404,
+            error: { message: 'Usuario no encontrado' }
+          }));
+        }
+        return throwError(() => error);
+      })
+    );
   }
 
   createUser(userData: CreateUserRequest): Observable<User> {
-    if (this.mockUsers.some(u => u.username === userData.username)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'El nombre de usuario ya existe' }
-      }));
-    }
-
-    if (this.mockUsers.some(u => u.email === userData.email)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'El correo electrónico ya está registrado' }
-      }));
-    }
-
-    const newUser: User = {
-      id: (this.mockUsers.length + 1).toString(),
-      ...userData,
-      isActive: true,
-      createdAt: new Date(),
-      lastLogin: undefined
-    };
-
-    this.mockUsers.push(newUser);
-    this.usersState.set([...this.mockUsers]);
-
-    return of(newUser).pipe(delay(500));
+    return this.http.post<User>(this.API_URL, userData, { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
+      tap(newUser => {
+        const currentUsers = this.usersState();
+        this.usersState.set([...currentUsers, newUser]);
+        this.notificationService.success('Éxito', 'Usuario creado correctamente');
+      }),
+      catchError(error => {
+        console.error('Error creating user:', error);
+        
+        // Manejar errores específicos del backend
+        if (error.status === 400) {
+          const errorMessage = error.error?.error || 'Datos inválidos';
+          this.notificationService.error('Error', errorMessage);
+        } else if (error.status === 403) {
+          this.notificationService.error('Error', 'No tienes permisos para crear usuarios');
+        } else {
+          this.notificationService.error('Error', 'No se pudo crear el usuario');
+        }
+        
+        return throwError(() => error);
+      })
+    );
   }
 
   updateUser(userData: UpdateUserRequest): Observable<User> {
-    const userIndex = this.mockUsers.findIndex(u => u.id === userData.id);
-    
-    if (userIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Usuario no encontrado' }
-      }));
-    }
-
-    if (userData.username && this.mockUsers.some(u => u.username === userData.username && u.id !== userData.id)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'El nombre de usuario ya existe' }
-      }));
-    }
-
-    if (userData.email && this.mockUsers.some(u => u.email === userData.email && u.id !== userData.id)) {
-      return throwError(() => ({
-        status: 409,
-        error: { message: 'El correo electrónico ya está registrado' }
-      }));
-    }
-
-    const updatedUser = {
-      ...this.mockUsers[userIndex],
-      ...userData
-    };
-
-    this.mockUsers[userIndex] = updatedUser;
-    this.usersState.set([...this.mockUsers]);
-
-    return of(updatedUser).pipe(delay(500));
+    return this.http.put<User>(`${this.API_URL}/${userData.id}`, userData, { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
+      tap(updatedUser => {
+        const currentUsers = this.usersState();
+        const updatedUsers = currentUsers.map(user => 
+          user.id === updatedUser.id ? updatedUser : user
+        );
+        this.usersState.set(updatedUsers);
+        this.notificationService.success('Éxito', 'Usuario actualizado correctamente');
+      }),
+      catchError(error => {
+        console.error('Error updating user:', error);
+        
+        if (error.status === 400) {
+          const errorMessage = error.error?.error || 'Datos inválidos';
+          this.notificationService.error('Error', errorMessage);
+        } else if (error.status === 403) {
+          this.notificationService.error('Error', 'No tienes permisos para actualizar este usuario');
+        } else if (error.status === 404) {
+          this.notificationService.error('Error', 'Usuario no encontrado');
+        } else {
+          this.notificationService.error('Error', 'No se pudo actualizar el usuario');
+        }
+        
+        return throwError(() => error);
+      })
+    );
   }
 
   deleteUser(id: string): Observable<boolean> {
-    const userIndex = this.mockUsers.findIndex(u => u.id === id);
-    
-    if (userIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Usuario no encontrado' }
-      }));
-    }
-
-    const user = this.mockUsers[userIndex];
-    
-    if (user.isActive) {
-      return throwError(() => ({
-        status: 400,
-        error: { message: 'No se puede eliminar un usuario activo. Desactívalo primero.' }
-      }));
-    }
-
-    if (user.role === UserRole.SUPER_ADMIN) {
-      return throwError(() => ({
-        status: 403,
-        error: { message: 'No se puede eliminar un Super Administrador' }
-      }));
-    }
-
-    this.mockUsers.splice(userIndex, 1);
-    this.usersState.set([...this.mockUsers]);
-
-    return of(true).pipe(delay(500));
+    return this.http.delete<{ message: string }>(`${this.API_URL}/${id}`, { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
+      tap(() => {
+        const currentUsers = this.usersState();
+        const filteredUsers = currentUsers.filter(user => user.id !== id);
+        this.usersState.set(filteredUsers);
+        this.notificationService.success('Éxito', 'Usuario eliminado correctamente');
+      }),
+      map(() => true),
+      catchError(error => {
+        console.error('Error deleting user:', error);
+        
+        if (error.status === 400) {
+          const errorMessage = error.error?.error || 'No se puede eliminar un usuario activo';
+          this.notificationService.error('Error', errorMessage);
+        } else if (error.status === 403) {
+          this.notificationService.error('Error', 'No tienes permisos para eliminar usuarios');
+        } else if (error.status === 404) {
+          this.notificationService.error('Error', 'Usuario no encontrado');
+        } else {
+          this.notificationService.error('Error', 'No se pudo eliminar el usuario');
+        }
+        
+        return throwError(() => error);
+      })
+    );
   }
 
   toggleUserStatus(id: string): Observable<User> {
-    const userIndex = this.mockUsers.findIndex(u => u.id === id);
-    
-    if (userIndex === -1) {
-      return throwError(() => ({
-        status: 404,
-        error: { message: 'Usuario no encontrado' }
-      }));
-    }
-
-    const user = this.mockUsers[userIndex];
-
-    if (user.role === UserRole.SUPER_ADMIN) {
-      return throwError(() => ({
-        status: 403,
-        error: { message: 'No se puede cambiar el estado de un Super Administrador' }
-      }));
-    }
-
-    this.mockUsers[userIndex].isActive = !this.mockUsers[userIndex].isActive;
-    this.usersState.set([...this.mockUsers]);
-
-    return of(this.mockUsers[userIndex]).pipe(delay(300));
+    return this.http.patch<User>(`${this.API_URL}/${id}/toggle-status`, {}, { 
+      headers: this.getAuthHeaders() 
+    }).pipe(
+      tap(updatedUser => {
+        const currentUsers = this.usersState();
+        const updatedUsers = currentUsers.map(user => 
+          user.id === updatedUser.id ? updatedUser : user
+        );
+        this.usersState.set(updatedUsers);
+        
+        const statusText = updatedUser.isActive ? 'activado' : 'desactivado';
+        this.notificationService.success('Éxito', `Usuario ${statusText} correctamente`);
+      }),
+      catchError(error => {
+        console.error('Error toggling user status:', error);
+        
+        if (error.status === 403) {
+          const errorMessage = error.error?.error || 'No tienes permisos para cambiar el estado del usuario';
+          this.notificationService.error('Error', errorMessage);
+        } else if (error.status === 404) {
+          this.notificationService.error('Error', 'Usuario no encontrado');
+        } else {
+          this.notificationService.error('Error', 'No se pudo cambiar el estado del usuario');
+        }
+        
+        return throwError(() => error);
+      })
+    );
   }
 
   private loadUsers(): void {
-    this.getUsers().subscribe();
+    // Solo cargar usuarios si está autenticado
+    if (this.authService.isAuthenticated()) {
+      this.getUsers().subscribe({
+        error: (error) => {
+          console.error('Error loading initial users:', error);
+        }
+      });
+    }
   }
 
   getRoleLabel(role: UserRole): string {
@@ -213,8 +204,15 @@ export class UserData {
   }
 
   getRoleOptions(): { value: UserRole; label: string }[] {
-    return [
-      { value: UserRole.ADMIN, label: 'Administrador' },
-    ];
+    const currentUser = this.authService.currentUser();
+    
+    // Solo Super Admin puede asignar roles
+    if (currentUser?.role === UserRole.SUPER_ADMIN) {
+      return [
+        { value: UserRole.ADMIN, label: 'Administrador' },
+      ];
+    }
+    
+    return [];
   }
 }
