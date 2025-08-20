@@ -1,4 +1,4 @@
-import { MenuItem } from "../interfaces/menu-item.interface";
+import { MenuItem } from "../interfaces/menu/menu-item.interface";
 
 export class MenuUtils {
     static createMenuItem(

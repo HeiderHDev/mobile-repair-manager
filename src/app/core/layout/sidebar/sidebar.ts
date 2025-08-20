@@ -6,7 +6,7 @@ import { PanelMenuModule } from 'primeng/panelmenu';
 import { LayoutOptions } from '../../services/layout/layout-options';
 import { DrawerModule } from 'primeng/drawer';
 import { RippleModule } from 'primeng/ripple';
-import { MenuItem } from '@shared/interfaces/menu-item.interface';
+import { MenuItem } from '@shared/interfaces/menu/menu-item.interface';
 import { MenuUtils } from '@shared/Utils/menu.utils';
 
 @Component({
