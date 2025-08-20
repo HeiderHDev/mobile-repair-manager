@@ -74,9 +74,6 @@ export class UserData {
         this.notificationService.success('Éxito', 'Usuario creado correctamente');
       }),
       catchError(error => {
-        console.error('Error creating user:', error);
-        
-        // Manejar errores específicos del backend
         if (error.status === 400) {
           const errorMessage = error.error?.error || 'Datos inválidos';
           this.notificationService.error('Error', errorMessage);

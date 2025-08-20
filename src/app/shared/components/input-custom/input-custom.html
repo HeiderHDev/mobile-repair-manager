@@ -14,6 +14,7 @@
         (onBlur)="onBlur()"
         (onFocus)="onFocus()"
         styleClass="w-full"
+        appendTo="body"
       ></p-select>
     } @else if (type() === 'number') {
       <p-inputnumber
@@ -51,6 +52,7 @@
         (blur)="onBlur()"
         (focus)="onFocus()"
         class="w-full"
+        appendTo="body"
       />
     } @else {
       <p-password
