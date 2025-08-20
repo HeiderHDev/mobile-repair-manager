@@ -135,8 +135,7 @@ export class UserFormModal implements OnChanges {
         this.userSaved.emit(user);
         this.handleClose();
       },
-      error: (error) => {
-        this.notificationService.error('Error al crear usuario', error);
+      error: () => {
         this.isLoading.set(false);
       }
     });
@@ -160,8 +159,7 @@ export class UserFormModal implements OnChanges {
         this.userSaved.emit(user);
         this.handleClose();
       },
-      error: (error) => {
-        this.notificationService.error('Error al actualizar usuario', error);
+      error: () => {
         this.isLoading.set(false);
       }
     });

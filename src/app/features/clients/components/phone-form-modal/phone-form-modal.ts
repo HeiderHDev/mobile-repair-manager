@@ -163,12 +163,7 @@ export class PhoneFormModal implements OnChanges {
         this.phoneSaved.emit(phone);
         this.handleClose();
       },
-      error: (error) => {
-        this.notificationService.error(
-          'Error al agregar teléfono',
-          'Hubo un error al agregar el teléfono'
-        );
-        console.error(error);
+      error: () => {
         this.isLoading.set(false);
       }
     });

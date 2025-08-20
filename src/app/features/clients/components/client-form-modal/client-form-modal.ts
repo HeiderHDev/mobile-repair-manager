@@ -153,11 +153,7 @@ export class ClientFormModal implements OnChanges {
         this.clientSaved.emit(client);
         this.handleClose();
       },
-      error: (error) => {
-        this.notificationService.error(
-          'Error al crear el cliente',
-          error.error.message
-        );
+      error: () => {
         this.isLoading.set(false);
       }
     });
@@ -188,11 +184,7 @@ export class ClientFormModal implements OnChanges {
         this.clientSaved.emit(client);
         this.handleClose();
       },
-      error: (error) => {
-        this.notificationService.error(
-          'Error al actualizar el cliente',
-          error.error.message
-        );
+      error: () => {
         this.isLoading.set(false);
       }
     });
