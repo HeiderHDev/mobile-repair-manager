@@ -1,1 +1,14 @@
-<p>users-list works!</p>
+<div class="users-management">
+    <app-data-table
+      [data]="users()"
+      [config]="tableConfig()"
+      (actionExecuted)="handleTableAction($event)"
+    ></app-data-table>
+
+    <app-user-form-modal
+      [visible]="showUserModal()"
+      [user]="selectedUser()"
+      (visibleChange)="closeUserModal()"
+      (userSaved)="handleUserSaved()"
+    ></app-user-form-modal>
+</div>

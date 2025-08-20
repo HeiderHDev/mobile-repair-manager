@@ -8,6 +8,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { loadingInterceptor } from './core/interceptors/loading/loading-interceptor';
 import { authInterceptor } from './core/interceptors/auth/auth-interceptor';
 import { FORM_ERRORS, FORM_ERRORS_MESSAGES } from '@core/constants/form-errors-messages';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,6 +25,8 @@ export const appConfig: ApplicationConfig = {
             }
         }
     }),
+    MessageService,
+    ConfirmationService,
     {provide: FORM_ERRORS, useValue: FORM_ERRORS_MESSAGES}
   ]
 };

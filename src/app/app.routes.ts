@@ -33,6 +33,10 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () => import('@features/dashboard/dashboard.component').then(c => c.DashboardComponent)
       },
+      {
+        path: 'users',
+        loadChildren: () => import('@users/users.routes').then(r => r.usersRoutes)
+      },
     ]
   },
   {

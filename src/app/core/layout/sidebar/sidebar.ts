@@ -32,12 +32,12 @@ import { MenuUtils } from '@shared/Utils/menu.utils';
             </span>
           </div>
           <button
+            aria-label="Cerrar menú"
             pButton
             type="button"
             icon="pi pi-times"
             [text]="true"
             class="p-button-rounded p-button-sm"
-            aria-label="Cerrar menú"
             (click)="closeSidebar()"
           ></button>
         </div>
@@ -48,24 +48,27 @@ import { MenuUtils } from '@shared/Utils/menu.utils';
           <!-- Menu Items -->
           <nav class="flex-1 py-4">
             <ul class="space-y-2">
-              <li *ngFor="let item of visibleMenuItems">
-                <a
-                  [routerLink]="item.route"
-                  routerLinkActive="bg-primary-50 dark:bg-primary-900 text-primary border-r-2 border-primary"
-                  class="flex items-center gap-3 px-4 py-3 text-surface-700 dark:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg mx-2 transition-colors duration-200"
-                  (click)="onMenuItemClick(item)"
-                  pRipple
-                >
-                  <i [class]="item.icon" class="text-lg"></i>
-                  <span class="font-medium">{{ item.label }}</span>
-                  <span 
-                    *ngIf="item.badge"
-                    [class]="'ml-auto px-2 py-1 text-xs rounded-full ' + (item.badgeStyleClass || 'bg-primary text-primary-contrast')"
+              @for (item of visibleMenuItems; track item.id) {
+                <li>
+                  <a
+                    [routerLink]="item.route"
+                    routerLinkActive="bg-primary-50 dark:bg-primary-900 text-primary border-r-2 border-primary"
+                    class="flex items-center gap-3 px-4 py-3 text-surface-700 dark:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg mx-2 transition-colors duration-200"
+                    (click)="onMenuItemClick(item)"
+                    pRipple
                   >
-                    {{ item.badge }}
-                  </span>
-                </a>
-              </li>
+                    <i [class]="item.icon" class="text-lg"></i>
+                    <span class="font-medium">{{ item.label }}</span>
+                    @if (item.badge) {
+                      <span 
+                        [class]="'ml-auto px-2 py-1 text-xs rounded-full ' + (item.badgeStyleClass || 'bg-primary text-primary-contrast')"
+                      >
+                        {{ item.badge }}
+                      </span>
+                    }
+                  </a>
+                </li>
+              }
             </ul>
           </nav>
 
@@ -102,6 +105,8 @@ export class Sidebar implements OnInit {
   private initializeMenu(): void {
     this.menuItems = [
       MenuUtils.createMenuItem('dashboard', 'Dashboard', 'pi pi-home', '/dashboard'),
+      MenuUtils.createMenuItem('users', 'Usuarios', 'pi pi-users', '/users'),
+      MenuUtils.createMenuItem('clients', 'Clientes', 'pi pi-user', '/clients'),
       MenuUtils.createMenuItem('repairs', 'Reparaciones', 'pi pi-wrench', '/repairs', { 
         badge: '5', 
         badgeStyleClass: 'bg-orange-500 text-white' 
