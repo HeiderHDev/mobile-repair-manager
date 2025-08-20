@@ -26,7 +26,7 @@ export class Auth {
   private readonly API_URL = `${environment.apiUrl || 'http://localhost:3000'}/api/auth`;
   
   private readonly http = inject(HttpService);
-  private readonly storage = inject(StorageService);
+  private readonly storage: StorageService = inject(StorageService);
   private readonly router = inject(Router);
 
   private _authState = signal<AuthState>({

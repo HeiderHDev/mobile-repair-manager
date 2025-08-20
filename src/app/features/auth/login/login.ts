@@ -6,11 +6,12 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { Auth } from '@core/services/auth/auth';
-import { Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subject } from 'rxjs';
 import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
 import { InputCustom } from '@shared/components/input-custom/input-custom';
 import { ToastModule } from 'primeng/toast';
+import { Notification } from '@core/services/notification/notification';
 
 @Component({
   selector: 'app-login',
@@ -31,15 +32,18 @@ export class Login implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(Auth);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly notificationService = inject(Notification);
   private readonly destroy$ = new Subject<void>();
 
   loginForm: FormGroup;
   isLoading = false;
-  errorMessage = '';
+  private returnUrl = '/clients';
 
   constructor() {
     this.loginForm = this.createLoginForm();
     this.checkAuthStatus();
+    this.getReturnUrl();
   }
 
   ngOnDestroy(): void {
@@ -62,29 +66,55 @@ export class Login implements OnDestroy {
     });
   }
 
-  private checkAuthStatus(): void {
-    if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/clients']);
+  private async checkAuthStatus(): Promise<void> {
+    try {
+      const isAuthenticated = await this.authService.isUserAuthenticated();
+      if (isAuthenticated) {
+        this.router.navigate([this.returnUrl]);
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
     }
   }
 
-  private performLogin(): void {
+  private getReturnUrl(): void {
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/clients';
+  }
+
+  private async performLogin(): Promise<void> {
     this.isLoading = true;
-    this.errorMessage = '';
 
     const credentials: LoginRequest = this.loginForm.value;
 
-    this.authService.login(credentials)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.isLoading = false;
-          this.router.navigate(['/clients']);
-        },
-        error: () => {
-          this.isLoading = false;
-        }
-      });
+    try {
+      await this.authService.login(credentials);
+      this.isLoading = false;
+      
+      this.notificationService.success(
+        'Bienvenido',
+        'Has iniciado sesión correctamente'
+      );
+      
+      // Navegar a la URL de retorno o dashboard
+      this.router.navigate([this.returnUrl]);
+    } catch (error: any) {
+      this.isLoading = false;
+      
+      // Manejar errores específicos
+      if (error.status === 401 || error.status === 400) {
+        this.notificationService.error(
+          'Error de autenticación',
+          'Usuario o contraseña incorrectos'
+        );
+      } else if (error.status === 0) {
+        this.notificationService.networkError();
+      } else {
+        this.notificationService.error(
+          'Error de conexión',
+          'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.'
+        );
+      }
+    }
   }
 
   private markFormGroupTouched(): void {

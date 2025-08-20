@@ -3,11 +3,14 @@ import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { AvatarModule } from 'primeng/avatar';
 import { LayoutOptions } from '../../services/layout/layout-options';
+import { MenuModule } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
+import { Auth } from '@core/services/auth/auth';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, ButtonModule, AvatarModule],
+  imports: [CommonModule, ButtonModule, AvatarModule, MenuModule],
   template: `
     <nav class="bg-surface-0 dark:bg-surface-900 border-b border-surface-200 dark:border-surface-700 px-4 py-3">
       <div class="flex items-center justify-between">
@@ -38,11 +41,22 @@ import { LayoutOptions } from '../../services/layout/layout-options';
             aria-label="Toggle dark mode"
           ></button>
 
-          <p-avatar 
-            label="U" 
-            styleClass="bg-primary text-primary-contrast"
-            shape="circle"
-          ></p-avatar>
+          <!-- Avatar con menú desplegable -->
+          <div class="relative">
+            <p-avatar 
+              [label]="getUserInitials()"
+              styleClass="bg-primary text-primary-contrast cursor-pointer"
+              shape="circle"
+              (click)="userMenu.toggle($event)"
+            ></p-avatar>
+            
+            <p-menu 
+              #userMenu 
+              [model]="userMenuItems" 
+              [popup]="true"
+              appendTo="body"
+            ></p-menu>
+          </div>
         </div>
       </div>
     </nav>
@@ -51,6 +65,29 @@ import { LayoutOptions } from '../../services/layout/layout-options';
 })
 export class Navbar {
   protected readonly layoutService = inject(LayoutOptions);
+  private readonly authService = inject(Auth);
+
+  userMenuItems: MenuItem[] = [
+    {
+      label: 'Mi Perfil',
+      icon: 'pi pi-user',
+      command: () => this.openProfile()
+    },
+    {
+      label: 'Configuración',
+      icon: 'pi pi-cog',
+      command: () => this.openSettings()
+    },
+    {
+      separator: true
+    },
+    {
+      label: 'Cerrar Sesión',
+      icon: 'pi pi-sign-out',
+      command: () => this.logout(),
+      styleClass: 'text-red-500'
+    }
+  ];
 
   toggleSidebar(): void {
     this.layoutService.toggleSidebar();
@@ -58,5 +95,38 @@ export class Navbar {
 
   toggleDarkMode(): void {
     this.layoutService.toggleDarkMode();
+  }
+
+  getUserInitials(): string {
+    const user = this.authService.currentUser();
+    if (user?.fullName) {
+      const names = user.fullName.split(' ');
+      if (names.length >= 2) {
+        return `${names[0][0]}${names[1][0]}`.toUpperCase();
+      }
+      return names[0][0].toUpperCase();
+    }
+    if (user?.username) {
+      return user.username[0].toUpperCase();
+    }
+    return 'U';
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.authService.logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  }
+
+  private openProfile(): void {
+    // TODO: Implementar navegación al perfil
+    console.log('Abrir perfil de usuario');
+  }
+
+  private openSettings(): void {
+    // TODO: Implementar navegación a configuración
+    console.log('Abrir configuración');
   }
 }

@@ -17,7 +17,6 @@ export const authGuard: CanActivateFn = async (route, state) => {
       return false;
     }
 
-    // Verificar si el usuario está activo
     const currentUser = authService.currentUser();
     if (currentUser && !currentUser.isActive) {
       console.warn('Usuario inactivo, redirigiendo al login');
@@ -31,5 +30,24 @@ export const authGuard: CanActivateFn = async (route, state) => {
     console.error('Error en auth guard:', error);
     router.navigate(['/auth/login']);
     return false;
+  }
+};
+
+export const noAuthGuard: CanActivateFn = async () => {
+  const authService = inject(Auth);
+  const router = inject(Router);
+
+  try {
+    const isAuthenticated = await authService.isUserAuthenticated();
+    
+    if (!isAuthenticated) {
+      return true;
+    }
+
+    router.navigate(['/clients']);
+    return false;
+  } catch (error) {
+    console.error('Error en noAuth guard:', error);
+    return true;
   }
 };
