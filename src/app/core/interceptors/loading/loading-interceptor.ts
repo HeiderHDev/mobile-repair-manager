@@ -1,6 +1,6 @@
 import { HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import { finalize, Observable } from 'rxjs';
-import { Loading } from '../services/loading';
+import { Loading } from '../../services/loading/loading';
 import { inject } from '@angular/core';
 
 export const loadingInterceptor = (
