@@ -1,0 +1,243 @@
+<div class="client-phones-view p-4">
+    <!-- Breadcrumb -->
+    <div class="mb-4">
+      <button
+        (click)="goBackToClients()"
+        class="text-primary hover:text-primary-600 font-medium"
+      >
+        <i class="pi pi-arrow-left mr-2"></i>
+        Volver a Clientes
+      </button>
+    </div>
+
+    <!-- Client Information Card -->
+    @if (client(); as clientData) {
+      <div class="mb-6">
+        <p-card>
+          <ng-template pTemplate="header">
+            <div class="p-4 pb-0">
+              <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0 m-0">
+                {{ getClientFullName(clientData) }}
+              </h1>
+              <p class="text-surface-600 dark:text-surface-300 mt-1">
+                Información del Cliente
+              </p>
+            </div>
+          </ng-template>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <span class="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-1">
+                Documento
+              </span>
+              <p class="text-surface-900 dark:text-surface-0">
+                {{ clientService.getDocumentTypeLabel(clientData.documentType) }}: 
+                {{ clientData.documentNumber }}
+              </p>
+            </div>
+
+            <div>
+              <span class="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-1">
+                Correo Electrónico
+              </span>
+              <p class="text-surface-900 dark:text-surface-0">
+                {{ clientData.email }}
+              </p>
+            </div>
+
+            <div>
+              <span class="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-1">
+                Teléfono
+              </span>
+              <p class="text-surface-900 dark:text-surface-0">
+                {{ clientData.phone }}
+              </p>
+            </div>
+
+            @if (clientData.address) {
+              <div class="md:col-span-2">
+                <span class="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-1">
+                  Dirección
+                </span>
+                <p class="text-surface-900 dark:text-surface-0">
+                  {{ clientData.address }}
+                </p>
+              </div>
+            }
+
+            <div>
+              <span class="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-1">
+                Estado
+              </span>
+              <p-tag
+                [value]="clientData.isActive ? 'Activo' : 'Inactivo'"
+                [severity]="clientData.isActive ? 'success' : 'danger'"
+              ></p-tag>
+            </div>
+          </div>
+
+          @if (clientData.notes) {
+            <p-divider></p-divider>
+            <div>
+              <span class="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-2">
+                Notas
+              </span>
+              <p class="text-surface-700 dark:text-surface-200 bg-surface-50 dark:bg-surface-800 p-3 rounded-lg">
+                {{ clientData.notes }}
+              </p>
+            </div>
+          }
+        </p-card>
+      </div>
+    } @else {
+      <!-- Loading Client Info -->
+      <div class="mb-6">
+        <p-card>
+          <p-skeleton height="2rem" class="mb-2"></p-skeleton>
+          <p-skeleton height="1rem" class="mb-4"></p-skeleton>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <p-skeleton height="4rem"></p-skeleton>
+            <p-skeleton height="4rem"></p-skeleton>
+            <p-skeleton height="4rem"></p-skeleton>
+          </div>
+        </p-card>
+      </div>
+    }
+
+    <!-- Phones Section -->
+    <div>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-surface-900 dark:text-surface-0">
+          Teléfonos Registrados
+        </h2>
+        <p-button
+          label="Agregar Teléfono"
+          icon="pi pi-plus"
+          (onClick)="openAddPhoneModal()"
+        ></p-button>
+      </div>
+
+      <!-- Phones Grid -->
+      @if (phones().length > 0) {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          @for (phone of phones(); track phone.id) {
+            <p-card styleClass="h-full">
+              <ng-template pTemplate="header">
+                <div class="p-4 pb-2">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0 m-0">
+                        {{ phoneService.getPhoneDisplayName(phone) }}
+                      </h3>
+                      @if (phone.color) {
+                        <p class="text-surface-600 dark:text-surface-300 text-sm mt-1">
+                          {{ phone.color }}
+                        </p>
+                      }
+                    </div>
+                    <p-tag
+                      [value]="phoneService.getConditionLabel(phone.condition)"
+                      [severity]="phoneService.getConditionColor(phone.condition)"
+                    ></p-tag>
+                  </div>
+                </div>
+              </ng-template>
+
+              <div class="space-y-3">
+                <div>
+                  <span class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">
+                    IMEI
+                  </span>
+                  <p class="text-sm text-surface-900 dark:text-surface-0 font-mono">
+                    {{ phoneService.formatImei(phone.imei) }}
+                  </p>
+                </div>
+
+                @if (phone.purchaseDate) {
+                  <div>
+                    <span class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">
+                      Fecha de Compra
+                    </span>
+                    <p class="text-sm text-surface-900 dark:text-surface-0">
+                      {{ phone.purchaseDate | date:'dd/MM/yyyy' }}
+                    </p>
+                  </div>
+                }
+
+                @if (phone.warrantyExpiry) {
+                  <div>
+                    <span class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">
+                      Garantía hasta
+                    </span>
+                    <p class="text-sm" 
+                       [class]="isWarrantyExpired(phone.warrantyExpiry) ? 'text-red-600' : 'text-surface-900 dark:text-surface-0'">
+                      {{ phone.warrantyExpiry | date:'dd/MM/yyyy' }}
+                      @if (isWarrantyExpired(phone.warrantyExpiry)) {
+                        <span class="text-xs">(Expirada)</span>
+                      }
+                    </p>
+                  </div>
+                }
+
+                @if (phone.notes) {
+                  <div>
+                    <span class="block text-xs font-medium text-surface-600 dark:text-surface-400 mb-1">
+                      Notas
+                    </span>
+                    <p class="text-sm text-surface-700 dark:text-surface-200 italic">
+                      {{ phone.notes }}
+                    </p>
+                  </div>
+                }
+              </div>
+
+              <ng-template pTemplate="footer">
+                <div class="flex gap-2 pt-3">
+                  <p-button
+                    label="Ver Reparaciones"
+                    icon="pi pi-history"
+                    size="small"
+                    [outlined]="true"
+                    (onClick)="viewPhoneRepairs(phone.id)"
+                    class="flex-1"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-pencil"
+                    size="small"
+                    severity="info"
+                    [outlined]="true"
+                    (onClick)="editPhone()"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-trash"
+                    size="small"
+                    severity="danger"
+                    [outlined]="true"
+                    (onClick)="deletePhone(phone.id)"
+                  ></p-button>
+                </div>
+              </ng-template>
+            </p-card>
+          }
+        </div>
+      } @else {
+        <!-- Empty State -->
+        <p-card>
+          <div class="text-center py-8">
+            <i class="pi pi-mobile text-6xl text-surface-300 dark:text-surface-600 mb-4"></i>
+            <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0 mb-2">
+              No hay teléfonos registrados
+            </h3>
+            <p class="text-surface-600 dark:text-surface-300 mb-4">
+              Este cliente aún no tiene teléfonos registrados
+            </p>
+            <p-button
+              label="Agregar Primer Teléfono"
+              icon="pi pi-plus"
+              (onClick)="openAddPhoneModal()"
+            ></p-button>
+          </div>
+        </p-card>
+      }
+    </div>
+  </div>

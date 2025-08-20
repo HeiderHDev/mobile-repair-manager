@@ -10,11 +10,12 @@ import { authInterceptor } from './core/interceptors/auth/auth-interceptor';
 import { FORM_ERRORS, FORM_ERRORS_MESSAGES } from '@core/constants/form-errors-messages';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { GlobalErrorHandler } from '@core/services/global-error-handler/global-error-handler';
+import { errorInterceptor } from '@core/interceptors/error/error-interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withFetch(), withInterceptors([loadingInterceptor, authInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([loadingInterceptor, authInterceptor, errorInterceptor])),
     provideZonelessChangeDetection(),
     provideRouter(routes),
     provideAnimationsAsync(),

@@ -104,14 +104,8 @@ export class Sidebar implements OnInit {
 
   private initializeMenu(): void {
     this.menuItems = [
-      MenuUtils.createMenuItem('dashboard', 'Dashboard', 'pi pi-home', '/dashboard'),
       MenuUtils.createMenuItem('users', 'Usuarios', 'pi pi-users', '/users'),
       MenuUtils.createMenuItem('clients', 'Clientes', 'pi pi-user', '/clients'),
-      MenuUtils.createMenuItem('repairs', 'Reparaciones', 'pi pi-wrench', '/repairs', { 
-        badge: '5', 
-        badgeStyleClass: 'bg-orange-500 text-white' 
-      }),
-      MenuUtils.createMenuItem('inventory', 'Inventario', 'pi pi-box', '/inventory')
     ];
     
     this.visibleMenuItems = MenuUtils.filterVisibleItems(this.menuItems);
@@ -121,7 +115,7 @@ export class Sidebar implements OnInit {
     if (item.command) {
       item.command();
     }
-    this.closeSidebar();
+    this.closeSidebar();  
   }
 
   protected closeSidebar(): void {

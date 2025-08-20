@@ -33,6 +33,10 @@ export const routes: Routes = [
         path: 'users',
         loadChildren: () => import('@users/users.routes').then(r => r.usersRoutes)
       },
+      {
+        path: 'clients',
+        loadChildren: () => import('@clients/clients.routes').then(r => r.clientsRoutes)
+      }
     ]
   },
   {

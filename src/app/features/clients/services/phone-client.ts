@@ -17,7 +17,6 @@ export class PhoneClient {
   private phonesState = signal<Phone[]>([]);
   readonly phones = this.phonesState.asReadonly();
 
-  // Mock data for development
   private mockPhones: Phone[] = [
     {
       id: '1',
@@ -101,7 +100,6 @@ export class PhoneClient {
   }
 
   createPhone(phoneData: CreatePhoneRequest): Observable<Phone> {
-    // Validate unique IMEI
     if (this.mockPhones.some(p => p.imei === phoneData.imei)) {
       return throwError(() => ({
         status: 409,
@@ -133,7 +131,6 @@ export class PhoneClient {
       }));
     }
 
-    // Validate unique IMEI (excluding current phone)
     if (phoneData.imei && 
         this.mockPhones.some(p => p.imei === phoneData.imei && p.id !== phoneData.id)) {
       return throwError(() => ({
@@ -174,7 +171,6 @@ export class PhoneClient {
     this.getPhones().subscribe();
   }
 
-  // Utility methods
   getConditionLabel(condition: PhoneCondition): string {
     const labels = {
       [PhoneCondition.EXCELLENT]: 'Excelente',
@@ -212,7 +208,6 @@ export class PhoneClient {
   }
 
   formatImei(imei: string): string {
-    // Format IMEI as: 123456-78-901234-5
     return imei.replace(/(\d{6})(\d{2})(\d{6})(\d{1})/, '$1-$2-$3-$4');
   }
 }
