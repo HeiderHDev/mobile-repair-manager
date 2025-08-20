@@ -1,16 +1,13 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { BehaviorSubject, Observable, map, tap, catchError, throwError } from 'rxjs';
-import { environment } from '@env/environment';
-
-// Interfaces
+import { DocumentType } from '@clients/enum/document-type.enum';
 import { Client } from '@clients/interfaces/cliente.interface';
 import { CreateClientRequest } from '@clients/interfaces/create-client-request.interface';
 import { UpdateClientRequest } from '@clients/interfaces/update-client-request.interface';
-import { DocumentType } from '@clients/enum/document-type.enum';
-import { HttpService } from '@core/services/http-service/http';
 import { Auth } from '@core/services/auth/auth';
+import { HttpService } from '@core/services/http-service/http';
+import { environment } from '@env/environment';
+import { BehaviorSubject, catchError, map, Observable, tap, throwError } from 'rxjs';
 
-// Interfaz para respuesta paginada del backend
 interface PaginatedClientsResponse {
   page: number;
   limit: number;
@@ -18,6 +15,12 @@ interface PaginatedClientsResponse {
   next: string | null;
   prev: string | null;
   customers: Client[];
+}
+
+interface ClientQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
 }
 
 @Injectable({
@@ -28,43 +31,87 @@ export class ClientData {
   private readonly auth = inject(Auth);
   private readonly API_URL = `${environment.apiUrl || 'http://localhost:3000'}/api/customers`;
   
-  // Estados inicializados correctamente
-  private readonly _clientsState$ = new BehaviorSubject<Client[]>([]);
-  private _clientsSignal = signal<Client[]>([]);
+  private readonly _paginatedClientsState$ = new BehaviorSubject<PaginatedClientsResponse | null>(null);
+  private readonly _clientsSignal = signal<Client[]>([]);
+  private readonly _paginationInfoSignal = signal<{
+    page: number;
+    limit: number;
+    total: number;
+    next: string | null;
+    prev: string | null;
+  } | null>(null);
 
-  readonly clients$ = this._clientsState$.asObservable();
+  readonly paginatedClients$ = this._paginatedClientsState$.asObservable();
   readonly clients = this._clientsSignal.asReadonly();
+  readonly paginationInfo = this._paginationInfoSignal.asReadonly();
 
-  constructor() {
-    this.loadClients();
-  }
 
   private getAuthHeaders() {
     const token = this.auth.getToken();
     return this.http.setHeader('Authorization', `Bearer ${token}`);
   }
 
-  getClients(): Observable<Client[]> {
-    console.log('🔄 Cargando clientes desde:', this.API_URL);
+  private buildQueryParams(params: ClientQueryParams = {}): string {
+    const searchParams = new URLSearchParams();
     
-    return this.http.doGet<PaginatedClientsResponse>(this.API_URL, this.getAuthHeaders()).pipe(
+    if (params.page) {
+      searchParams.append('page', params.page.toString());
+    }
+    
+    if (params.limit) {
+      searchParams.append('limit', params.limit.toString());
+    }
+    
+    if (params.search && params.search.trim()) {
+      searchParams.append('search', params.search.trim());
+    }
+    
+    const queryString = searchParams.toString();
+    return queryString ? `?${queryString}` : '';
+  }
+
+  getClientsPaginated(params: ClientQueryParams = {}): Observable<PaginatedClientsResponse> {
+    const queryString = this.buildQueryParams(params);
+    const url = `${this.API_URL}${queryString}`;
+    
+    return this.http.doGet<PaginatedClientsResponse>(url, this.getAuthHeaders()).pipe(
+      tap(response => {
+        this._paginatedClientsState$.next(response);
+        this._clientsSignal.set(response.customers || []);
+        this._paginationInfoSignal.set({
+          page: response.page,
+          limit: response.limit,
+          total: response.total,
+          next: response.next,
+          prev: response.prev
+        });
+      }),
+      catchError(error => {
+        this._paginatedClientsState$.next(null);
+        this._clientsSignal.set([]);
+        this._paginationInfoSignal.set(null);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getClients(): Observable<Client[]> {
+    return this.http.doGet<PaginatedClientsResponse | Client[]>(this.API_URL, this.getAuthHeaders()).pipe(
       map(response => {
-        console.log('📥 Respuesta del backend:', response);
+        let clientsArray: Client[] = [];
         
-        // Extraer el array de clientes de la respuesta paginada
-        const clientsArray = response?.customers || [];
-        console.log('👥 Clientes extraídos:', clientsArray);
+        if (Array.isArray(response)) {
+          clientsArray = response;
+        } else if (response && typeof response === 'object' && 'customers' in response) {
+          clientsArray = response.customers || [];
+        } else {
+          clientsArray = [];
+        }
         
-        // Actualizar estados
-        this._clientsState$.next(clientsArray);
         this._clientsSignal.set(clientsArray);
-        
         return clientsArray;
       }),
       catchError(error => {
-        console.error('❌ Error loading clients:', error);
-        // En caso de error, asegurar que el estado quede vacío
-        this._clientsState$.next([]);
         this._clientsSignal.set([]);
         return throwError(() => error);
       })
@@ -74,7 +121,6 @@ export class ClientData {
   getClientById(id: string): Observable<Client> {
     return this.http.doGet<Client>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
       catchError(error => {
-        console.error('Error loading client:', error);
         return throwError(() => error);
       })
     );
@@ -87,11 +133,17 @@ export class ClientData {
       this.getAuthHeaders()
     ).pipe(
       tap(newClient => {
-        console.log('✅ Cliente creado:', newClient);
-        const currentClients = this._clientsState$.value || [];
-        const updatedClients = [newClient, ...currentClients];
-        this._clientsState$.next(updatedClients);
-        this._clientsSignal.set(updatedClients);
+        const currentResponse = this._paginatedClientsState$.value;
+        if (currentResponse) {
+          const updatedClients = [newClient, ...currentResponse.customers];
+          const updatedResponse = {
+            ...currentResponse,
+            customers: updatedClients,
+            total: currentResponse.total + 1
+          };
+          this._paginatedClientsState$.next(updatedResponse);
+          this._clientsSignal.set(updatedClients);
+        }
       }),
       catchError(error => {
         console.error('Error creating client:', error);
@@ -107,20 +159,19 @@ export class ClientData {
       this.getAuthHeaders()
     ).pipe(
       tap(updatedClient => {
-        console.log('✅ Cliente actualizado:', updatedClient);
-        const currentClients = this._clientsState$.value || [];
+        const currentResponse = this._paginatedClientsState$.value;
         
-        if (!Array.isArray(currentClients)) {
-          console.warn('⚠️ currentClients no es un array, recargando datos');
-          this.loadClients();
-          return;
+        if (currentResponse && Array.isArray(currentResponse.customers)) {
+          const updatedClients = currentResponse.customers.map(client => 
+            client.id === updatedClient.id ? updatedClient : client
+          );
+          const updatedResponse = {
+            ...currentResponse,
+            customers: updatedClients
+          };
+          this._paginatedClientsState$.next(updatedResponse);
+          this._clientsSignal.set(updatedClients);
         }
-
-        const updatedClients = currentClients.map(client => 
-          client.id === updatedClient.id ? updatedClient : client
-        );
-        this._clientsState$.next(updatedClients);
-        this._clientsSignal.set(updatedClients);
       }),
       catchError(error => {
         console.error('Error updating client:', error);
@@ -132,18 +183,18 @@ export class ClientData {
   deleteClient(id: string): Observable<boolean> {
     return this.http.doDelete<{ message: string }>(`${this.API_URL}/${id}`, this.getAuthHeaders()).pipe(
       tap(() => {
-        console.log('🗑️ Cliente eliminado:', id);
-        const currentClients = this._clientsState$.value || [];
+        const currentResponse = this._paginatedClientsState$.value;
         
-        if (!Array.isArray(currentClients)) {
-          console.warn('⚠️ currentClients no es un array, recargando datos');
-          this.loadClients();
-          return;
+        if (currentResponse && Array.isArray(currentResponse.customers)) {
+          const filteredClients = currentResponse.customers.filter(client => client.id !== id);
+          const updatedResponse = {
+            ...currentResponse,
+            customers: filteredClients,
+            total: Math.max(0, currentResponse.total - 1)
+          };
+          this._paginatedClientsState$.next(updatedResponse);
+          this._clientsSignal.set(filteredClients);
         }
-
-        const filteredClients = currentClients.filter(client => client.id !== id);
-        this._clientsState$.next(filteredClients);
-        this._clientsSignal.set(filteredClients);
       }),
       map(() => true),
       catchError(error => {
@@ -160,20 +211,19 @@ export class ClientData {
       this.getAuthHeaders()
     ).pipe(
       tap(updatedClient => {
-        console.log('🔄 Estado del cliente cambiado:', updatedClient);
-        const currentClients = this._clientsState$.value || [];
+        const currentResponse = this._paginatedClientsState$.value;
         
-        if (!Array.isArray(currentClients)) {
-          console.warn('⚠️ currentClients no es un array, recargando datos');
-          this.loadClients();
-          return;
+        if (currentResponse && Array.isArray(currentResponse.customers)) {
+          const updatedClients = currentResponse.customers.map(client => 
+            client.id === updatedClient.id ? updatedClient : client
+          );
+          const updatedResponse = {
+            ...currentResponse,
+            customers: updatedClients
+          };
+          this._paginatedClientsState$.next(updatedResponse);
+          this._clientsSignal.set(updatedClients);
         }
-
-        const updatedClients = currentClients.map(client => 
-          client.id === updatedClient.id ? updatedClient : client
-        );
-        this._clientsState$.next(updatedClients);
-        this._clientsSignal.set(updatedClients);
       }),
       catchError(error => {
         console.error('Error toggling client status:', error);
@@ -182,25 +232,6 @@ export class ClientData {
     );
   }
 
-  private loadClients(): void {
-    console.log('🚀 Inicializando carga de clientes...');
-    console.log('🔐 Usuario autenticado:', this.auth.isAuthenticated());
-    
-    if (this.auth.isAuthenticated()) {
-      this.getClients().subscribe({
-        next: (clients) => {
-          console.log('✅ Clientes cargados exitosamente:', clients.length);
-        },
-        error: (error) => {
-          console.error('❌ Error loading initial clients:', error);
-        }
-      });
-    } else {
-      console.warn('⚠️ Usuario no autenticado, no se cargarán clientes');
-    }
-  }
-
-  // Métodos de utilidad
   getDocumentTypeLabel(type: DocumentType): string {
     const labels = {
       [DocumentType.CC]: 'Cédula de Ciudadanía',
@@ -228,22 +259,18 @@ export class ClientData {
     return phone.replace(/(\+57\s?)(\d{3})(\s?)(\d{3})(\s?)(\d{4})/, '+57 $2 $4 $6');
   }
 
-  // Métodos de debugging
   resetState(): void {
-    console.log('🔄 Reseteando estado de clientes');
-    this._clientsState$.next([]);
+    this._paginatedClientsState$.next(null);
     this._clientsSignal.set([]);
+    this._paginationInfoSignal.set(null);
   }
 
   getCurrentClientsState(): Client[] {
-    const currentState = this._clientsState$.value;
-    console.log('📊 Estado actual de clientes:', currentState);
-    return Array.isArray(currentState) ? currentState : [];
+    const currentClients = this._clientsSignal();
+    return currentClients;
   }
 
-  // Método para forzar recarga
-  forceReload(): void {
-    console.log('🔄 Forzando recarga de clientes...');
-    this.loadClients();
+  getCurrentPaginationInfo() {
+    return this._paginationInfoSignal();
   }
 }

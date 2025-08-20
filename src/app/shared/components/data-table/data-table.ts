@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, input, OnDestroy, output, signal } from '@angular/core';
+import { Component, computed, inject, input, OnDestroy, output, signal, effect } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { BaseEntity } from '@shared/interfaces/table/base-entity.interface';
 import { TableAction } from '@shared/interfaces/table/table-action.interface';
@@ -11,7 +11,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { TableModule, TablePageEvent } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 
@@ -38,7 +37,6 @@ export interface PaginatedResponse<T> {
     CardModule,
     TagModule,
     ConfirmDialogModule,
-    ToastModule,
     TooltipModule
   ],
   providers: [ConfirmationService, MessageService],
@@ -101,6 +99,10 @@ export interface PaginatedResponse<T> {
     :host ::ng-deep .p-button:focus {
       @apply ring-2 ring-offset-2 ring-blue-500;
     }
+
+    .pagination-info {
+      @apply text-sm text-gray-600 dark:text-gray-400 mt-2;
+    }
   `]
 })
 export class DataTable<T extends BaseEntity> implements OnDestroy {
@@ -110,6 +112,7 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
 
   readonly actionExecuted = output<{ action: string; item: T }>();
   readonly pageChanged = output<{ page: number; limit: number }>();
+  readonly searchChanged = output<string>();
 
   searchControl = new FormControl('');
   private readonly searchValue = signal('');
@@ -118,17 +121,14 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
 
-  // Signals para manejo de paginación
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
 
-  // Computed para extraer datos del input
   readonly tableData = computed(() => {
     const inputData = this.data();
     return this.extractDataArray(inputData);
   });
 
-  // Computed para información de paginación
   readonly paginationInfo = computed(() => {
     const inputData = this.data();
     if (this.isPaginatedResponse(inputData)) {
@@ -143,7 +143,6 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
     return null;
   });
 
-  // Computed para filtrado local (solo si no es paginación del servidor)
   readonly filteredData = computed(() => {
     const searchTerm = this.searchValue().toLowerCase().trim();
     const data = this.tableData();
@@ -160,17 +159,45 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
     );
   });
 
+  readonly displayRange = computed(() => {
+    const paginationInfo = this.paginationInfo();
+    if (!paginationInfo) {
+      const filteredData = this.filteredData();
+      return {
+        start: filteredData.length > 0 ? 1 : 0,
+        end: filteredData.length,
+        total: filteredData.length
+      };
+    }
+
+    const { page, limit, total } = paginationInfo;
+    const start = total > 0 ? ((page - 1) * limit) + 1 : 0;
+    const end = Math.min(page * limit, total);
+    
+    return { start, end, total };
+  });
+
   constructor() {
+    effect(() => {
+      const config = this.config();
+      if (config.rows) {
+        this.pageSize.set(config.rows);
+      }
+    });
+
     this.searchControl.valueChanges
       .pipe(
-        debounceTime(300),
+        debounceTime(500),
         distinctUntilChanged(),
         takeUntil(this.destroy$)
       )
       .subscribe(value => {
-        this.searchValue.set(value || '');
-        // Si es paginación del servidor, emitir evento para nueva búsqueda
+        const searchTerm = value?.trim() || '';
+        this.searchValue.set(searchTerm);
+        
         if (this.isServerSidePagination()) {
+          this.searchChanged.emit(searchTerm);
+          this.currentPage.set(1);
           this.onPageChange({ first: 0, rows: this.pageSize() });
         }
       });
@@ -199,9 +226,8 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
     return [];
   }
 
-  // Eventos de paginación
   onPageChange(event: TablePageEvent): void {
-    const page = (event.first / event.rows) + 1; // Convertir first/rows a página 1-based
+    const page = Math.floor(event.first / event.rows) + 1;
     this.currentPage.set(page);
     this.pageSize.set(event.rows);
     
@@ -281,23 +307,37 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
     }
   }
 
-
   isActionDisabled(action: TableAction<T>, item: T): boolean {
     return action.disabled ? action.disabled(item) : false;
   }
 
-  // Computed para campos de filtro global
   readonly globalFilterFields = computed(() => {
     return this.config().columns.map(col => this.getSortableField(col.field));
   });
 
-  // Método para verificar si es paginación del servidor
   isServerSidePagination(): boolean {
     return this.isPaginatedResponse(this.data());
   }
 
-  // Getter para obtener el valor de búsqueda actual
   getSearchValue(): string {
     return this.searchValue();
+  }
+
+  getPaginationText(): string {
+    const range = this.displayRange();
+    if (range.total === 0) {
+      return 'No hay registros para mostrar';
+    }
+    return `Mostrando ${range.start} - ${range.end} de ${range.total} registros`;
+  }
+
+  hasNextPage(): boolean {
+    const paginationInfo = this.paginationInfo();
+    return paginationInfo ? paginationInfo.hasNext : false;
+  }
+
+  hasPrevPage(): boolean {
+    const paginationInfo = this.paginationInfo();
+    return paginationInfo ? paginationInfo.hasPrev : false;
   }
 }

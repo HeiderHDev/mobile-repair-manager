@@ -1,14 +1,19 @@
 <div class="clients-management">
-    <app-data-table
-      [data]="clients()"
-      [config]="tableConfig()"
-      (actionExecuted)="handleTableAction($event)"
-    ></app-data-table>
+  <app-data-table
+    [data]="paginatedData()"
+    [config]="tableConfig()"
+    [loading]="isLoading()"
+    (actionExecuted)="handleTableAction($event)"
+    (pageChanged)="handlePageChanged($event)"
+    (searchChanged)="handleSearchChanged($event)"
+  ></app-data-table>
 
+  @if (showClientModal()) {
     <app-client-form-modal
-      [visible]="showClientModal()"
       [client]="selectedClient()"
-      (visibleChange)="closeClientModal()"
+      [visible]="showClientModal()"
       (clientSaved)="handleClientSaved()"
+      (visibleChange)="closeClientModal()"
     ></app-client-form-modal>
-  </div>
+  }
+</div>

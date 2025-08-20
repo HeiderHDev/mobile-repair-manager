@@ -15,11 +15,11 @@ import { TableAction } from '@shared/interfaces/table/table-action.interface';
   imports: [
     CommonModule,
     DataTable,
-    ClientFormModal],
+    ClientFormModal
+  ],
   templateUrl: './client-list.html',
-  styles: 
-  `
-      .clients-management {
+  styles: `
+    .clients-management {
       padding: 1rem;
     } 
   `
@@ -29,10 +29,16 @@ export class ClientList implements OnInit {
   private readonly notificationService = inject(Notification);
   private readonly router = inject(Router);
 
-  clients = signal<Client[]>([]);
+  // Signals para el estado de la lista
+  paginatedData = signal<any>(null);
   showClientModal = signal(false);
   selectedClient = signal<Client | null>(null);
   isLoading = signal(false);
+  
+  // Signals para el control de paginación
+  currentPage = signal(1);
+  pageSize = signal(10);
+  searchTerm = signal('');
 
   readonly tableConfig = computed<TableConfig<Client>>(() => ({
     title: 'Gestión de Clientes',
@@ -45,12 +51,12 @@ export class ClientList implements OnInit {
     searchPlaceholder: 'Buscar clientes...',
     emptyMessage: 'No hay clientes registrados',
     paginator: true,
-    rows: 10,
+    rows: this.pageSize(),
     rowsPerPageOptions: [5, 10, 20, 50]
   }));
 
   ngOnInit(): void {
-    this.loadClients();
+    this.loadClientsPaginated();
   }
 
   handleTableAction(event: { action: string; item: Client }): void {
@@ -70,12 +76,24 @@ export class ClientList implements OnInit {
         this.toggleClientStatus(item.id);
         break;
       default:
-        console.log('Acción no reconocida:', action);
+        break;
     }
   }
 
+  handlePageChanged(event: { page: number; limit: number }): void {
+    this.currentPage.set(event.page);
+    this.pageSize.set(event.limit);
+    this.loadClientsPaginated();
+  }
+
+  handleSearchChanged(searchTerm: string): void {
+    this.searchTerm.set(searchTerm);
+    this.currentPage.set(1);
+    this.loadClientsPaginated();
+  }
+
   handleClientSaved(): void {
-    this.loadClients();
+    this.loadClientsPaginated();
   }
 
   closeClientModal(): void {
@@ -154,7 +172,7 @@ export class ClientList implements OnInit {
       {
         label: 'Toggle Estado',
         icon: 'pi pi-power-off',
-        severity: 'danger',
+        severity: 'info',
         action: (client) => this.toggleClientStatus(client.id)
       },
       {
@@ -167,18 +185,24 @@ export class ClientList implements OnInit {
     ];
   }
 
-  private loadClients(): void {
+  private loadClientsPaginated(): void {
     this.isLoading.set(true);
     
-    this.clientService.getClients().subscribe({
-      next: (clients) => {
-        this.clients.set(clients);
+    const params = {
+      page: this.currentPage(),
+      limit: this.pageSize(),
+      search: this.searchTerm() || undefined
+    };
+    
+    this.clientService.getClientsPaginated(params).subscribe({
+      next: (response) => {
+        this.paginatedData.set(response);
         this.isLoading.set(false);
       },
       error: (error) => {
         this.notificationService.error(
           'Error al cargar clientes',
-          error.error.message
+          error?.error?.message || 'Error desconocido'
         );
         this.isLoading.set(false);
       }
@@ -198,18 +222,17 @@ export class ClientList implements OnInit {
   private deleteClient(clientId: string): void {
     this.clientService.deleteClient(clientId).subscribe({
       next: () => {
-        this.loadClients();
         this.notificationService.success(
           'Cliente eliminado',
           'El cliente ha sido eliminado exitosamente'
         );
+        this.loadClientsPaginated();
       },
       error: (error) => {
         this.notificationService.error(
           'Error al eliminar cliente',
-          error.error.message
+          error?.error?.message || 'Error desconocido'
         );
-        this.loadClients();
       }
     });
   }
@@ -217,19 +240,19 @@ export class ClientList implements OnInit {
   private toggleClientStatus(clientId: string): void {
     this.clientService.toggleClientStatus(clientId).subscribe({
       next: (updatedClient) => {
-        this.loadClients();
         const status = updatedClient.isActive ? 'activado' : 'desactivado';
         this.notificationService.info(
           'Estado actualizado',
           `El cliente ha sido ${status}`
         );
+        this.loadClientsPaginated();
       },
       error: (error) => {
+        console.error('❌ Error al actualizar estado:', error);
         this.notificationService.error(
           'Error al actualizar estado',
-          error.error.message
+          error?.error?.message || 'Error desconocido'
         );
-        this.loadClients();
       }
     });
   }

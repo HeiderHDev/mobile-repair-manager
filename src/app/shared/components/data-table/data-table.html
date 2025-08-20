@@ -29,6 +29,22 @@
             class="w-full md:w-auto"
           />
         </div>
+        @if (isServerSidePagination() && getSearchValue()) {
+          <small class="text-gray-600 mt-1 block">
+            Buscando: "{{ getSearchValue() }}"
+          </small>
+        }
+      </div>
+    }
+
+    @if (isServerSidePagination() && paginationInfo()) {
+      <div class="pagination-info mb-3 flex justify-between items-center">
+        <span>{{ getPaginationText() }}</span>
+        <div class="flex items-center gap-2 text-sm">
+          @if (paginationInfo()?.page) {
+            <span>Página {{ paginationInfo()!.page }}</span>
+          }
+        </div>
       </div>
     }
 
@@ -39,12 +55,13 @@
       [rows]="pageSize()"
       [totalRecords]="paginationInfo()?.total || filteredData().length"
       [rowsPerPageOptions]="config().rowsPerPageOptions ?? [5, 10, 20, 50]"
-      [showCurrentPageReport]="true"
+      [showCurrentPageReport]="!isServerSidePagination()"
       currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
       [loading]="loading()"
       styleClass="p-datatable-striped"
       responsiveLayout="scroll"
       (onPage)="onPageChange($event)"
+      [globalFilterFields]="globalFilterFields()"
     >
       <ng-template pTemplate="header">
         <tr>
@@ -120,8 +137,17 @@
             <div class="text-center py-8">
               <i class="pi pi-info-circle text-4xl text-surface-400 mb-4"></i>
               <p class="text-surface-600 dark:text-surface-300 text-lg">
-                {{ config().emptyMessage || 'No hay datos para mostrar' }}
+                @if (getSearchValue() && isServerSidePagination()) {
+                  No se encontraron resultados para "{{ getSearchValue() }}"
+                } @else {
+                  {{ config().emptyMessage || 'No hay datos para mostrar' }}
+                }
               </p>
+              @if (getSearchValue()) {
+                <p class="text-surface-500 text-sm mt-2">
+                  Intenta con otros términos de búsqueda
+                </p>
+              }
             </div>
           </td>
         </tr>
@@ -132,14 +158,42 @@
           <td [attr.colspan]="getTotalColumns()">
             <div class="text-center py-8">
               <i class="pi pi-spin pi-spinner text-2xl text-surface-400 mb-4"></i>
-              <p class="text-surface-600 dark:text-surface-300">Cargando datos...</p>
+              <p class="text-surface-600 dark:text-surface-300">
+                @if (getSearchValue()) {
+                  Buscando "{{ getSearchValue() }}"...
+                } @else {
+                  Cargando datos...
+                }
+              </p>
             </div>
           </td>
         </tr>
       </ng-template>
     </p-table>
+
+    @if (isServerSidePagination() && paginationInfo()) {
+      <div class="pagination-info mt-3 flex justify-between items-center text-sm">
+        <div class="flex items-center gap-4">
+          <span>{{ getPaginationText() }}</span>
+          @if (paginationInfo()!.limit) {
+            <span class="text-gray-500">
+              {{ paginationInfo()!.limit }} por página
+            </span>
+          }
+        </div>
+        <div class="flex items-center gap-2">
+          @if (hasPrevPage()) {
+            <i class="pi pi-angle-left text-blue-600"></i>
+            <span class="text-blue-600 text-xs">Anterior disponible</span>
+          }
+          @if (hasNextPage()) {
+            <span class="text-blue-600 text-xs">Siguiente disponible</span>
+            <i class="pi pi-angle-right text-blue-600"></i>
+          }
+        </div>
+      </div>
+    }
   </ng-template>
 </p-card>
 
 <p-confirmDialog></p-confirmDialog>
-<p-toast></p-toast>

@@ -64,7 +64,7 @@ export class UsersList implements OnInit {
         this.toggleUserStatus(item.id);
         break;
       default:
-        console.log('Acción no reconocida:', action);
+        break;
     }
   }
 
