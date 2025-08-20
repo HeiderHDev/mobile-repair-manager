@@ -1,3 +1,4 @@
+// src/app/features/auth/login/login.ts
 import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -7,11 +8,12 @@ import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { Auth } from '@core/services/auth/auth';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject } from 'rxjs';
+import { Subject, takeUntil, finalize } from 'rxjs';
 import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
 import { InputCustom } from '@shared/components/input-custom/input-custom';
 import { ToastModule } from 'primeng/toast';
 import { Notification } from '@core/services/notification/notification';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -52,7 +54,7 @@ export class Login implements OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.loginForm.valid) {
+    if (this.loginForm.valid && !this.isLoading) {
       this.performLogin();
     } else {
       this.markFormGroupTouched();
@@ -66,54 +68,80 @@ export class Login implements OnDestroy {
     });
   }
 
-  private async checkAuthStatus(): Promise<void> {
-    try {
-      const isAuthenticated = await this.authService.isUserAuthenticated();
-      if (isAuthenticated) {
-        this.router.navigate([this.returnUrl]);
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-    }
+  private checkAuthStatus(): void {
+    this.authService.isUserAuthenticated()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (isAuthenticated) => {
+          if (isAuthenticated) {
+            this.router.navigate([this.returnUrl]);
+          }
+        },
+        error: (error) => {
+          console.error('Error checking auth status:', error);
+        }
+      });
   }
 
   private getReturnUrl(): void {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/clients';
   }
 
-  private async performLogin(): Promise<void> {
+  private performLogin(): void {
     this.isLoading = true;
-
     const credentials: LoginRequest = this.loginForm.value;
 
-    try {
-      await this.authService.login(credentials);
-      this.isLoading = false;
-      
-      this.notificationService.success(
-        'Bienvenido',
-        'Has iniciado sesión correctamente'
-      );
-      
-      // Navegar a la URL de retorno o dashboard
-      this.router.navigate([this.returnUrl]);
-    } catch (error: any) {
-      this.isLoading = false;
-      
-      // Manejar errores específicos
-      if (error.status === 401 || error.status === 400) {
+    this.authService.login(credentials)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isLoading = false)
+      )
+      .subscribe({
+        next: () => {
+          this.notificationService.success(
+            'Bienvenido',
+            'Has iniciado sesión correctamente'
+          );
+          
+          this.router.navigate([this.returnUrl]);
+        },
+        error: (error) => {
+          this.handleLoginError(error);
+        }
+      });
+  }
+
+  private handleLoginError(error: HttpErrorResponse): void {
+    console.error('Login error:', error);
+    
+    switch (error.status) {
+      case 401:
+      case 400:
         this.notificationService.error(
           'Error de autenticación',
           'Usuario o contraseña incorrectos'
         );
-      } else if (error.status === 0) {
+        break;
+      case 0:
         this.notificationService.networkError();
-      } else {
+        break;
+      case 429:
+        this.notificationService.warning(
+          'Demasiados intentos',
+          'Has excedido el límite de intentos. Intenta nuevamente más tarde.'
+        );
+        break;
+      case 500:
+        this.notificationService.error(
+          'Error del servidor',
+          'Error interno del servidor. Intenta nuevamente.'
+        );
+        break;
+      default:
         this.notificationService.error(
           'Error de conexión',
           'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.'
         );
-      }
     }
   }
 

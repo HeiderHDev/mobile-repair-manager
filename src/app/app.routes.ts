@@ -1,6 +1,8 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
-import { authGuard, noAuthGuard } from '@core/guards/auth-guard';
+import { authGuard, noAuthGuard, roleGuard } from '@core/guards/auth-guard';
 import { Layout } from '@core/layout/layout';
+import { UserRole } from '@core/enum/auth/user-role.enum';
 
 export const routes: Routes = [
   {
@@ -30,6 +32,7 @@ export const routes: Routes = [
     children: [
       {
         path: 'users',
+        canActivate: [roleGuard([UserRole.SUPER_ADMIN])],
         loadChildren: () => import('@users/users.routes').then(r => r.usersRoutes)
       },
       {

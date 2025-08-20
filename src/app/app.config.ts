@@ -15,7 +15,7 @@ import { errorInterceptor } from '@core/interceptors/error/error-interceptor';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withFetch(), withInterceptors([loadingInterceptor, authInterceptor, errorInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor, loadingInterceptor, errorInterceptor])),
     provideZonelessChangeDetection(),
     provideRouter(routes),
     provideAnimationsAsync(),
