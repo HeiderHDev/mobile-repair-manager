@@ -9,7 +9,7 @@ import { UpdateClientRequest } from '@clients/interfaces/update-client-request.i
 import { CommonModule } from '@angular/common';
 import { Dialog } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
-import { InputCustom } from '@shared/components/input/input';
+import { InputCustom } from '@shared/components/input-custom/input-custom';
 
 @Component({
   selector: 'app-client-form-modal',

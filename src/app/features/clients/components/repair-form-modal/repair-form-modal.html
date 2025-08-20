@@ -1,0 +1,190 @@
+<!-- src/app/features/clients/components/repair-form-modal/repair-form-modal.html -->
+<p-dialog
+  [header]="dialogTitle()"
+  [modal]="true"
+  [visible]="visible()"
+  [style]="{ width: '700px' }"
+  [draggable]="false"
+  [resizable]="false"
+  (onHide)="handleClose()"
+>
+  <form [formGroup]="repairForm" (ngSubmit)="onSubmit()" class="space-y-6">
+    
+    <!-- Row 1: Issue -->
+    <app-input-custom
+      label="Problema/Falla"
+      type="text"
+      placeholder="Ej: Pantalla quebrada, No carga, Cámara borrosa..."
+      formControlName="issue"
+      [maxlength]="100"
+    ></app-input-custom>
+
+    <!-- Row 2: Description -->
+    <div class="form-field mb-6">
+      <label for="description-textarea" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+        <i class="pi pi-file-text mr-1"></i>
+        Descripción Detallada <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="description-textarea"
+        formControlName="description"
+        placeholder="Describe detalladamente el problema y los síntomas observados..."
+        rows="4"
+        class="w-full p-3 border border-surface-300 dark:border-surface-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-surface-800 dark:text-surface-0 resize-none"
+        maxlength="500"
+      ></textarea>
+      @if (repairForm.get('description')?.invalid && repairForm.get('description')?.touched) {
+        <small class="text-red-500 text-sm mt-2 block">
+          <i class="pi pi-exclamation-triangle mr-1"></i>
+          La descripción es requerida (mínimo 10 caracteres)
+        </small>
+      }
+      <div class="text-right mt-1">
+        <small class="text-surface-500 text-xs">
+          {{ repairForm.get('description')?.value?.length || 0 }}/500 caracteres
+        </small>
+      </div>
+    </div>
+
+    <!-- Row 3: Priority & Status (only for edit) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <app-input-custom
+        label="Prioridad"
+        type="select"
+        placeholder="Selecciona la prioridad de la reparación"
+        formControlName="priority"
+        [options]="priorityOptions"
+        optionLabel="label"
+        optionValue="value"
+      ></app-input-custom>
+
+      @if (isEditMode()) {
+        <app-input-custom
+          label="Estado de la Reparación"
+          type="select"
+          placeholder="Selecciona el estado actual"
+          formControlName="status"
+          [options]="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+        ></app-input-custom>
+      }
+    </div>
+
+    <!-- Row 4: Estimated Cost & Duration -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <app-input-custom
+        label="Costo Estimado (COP)"
+        type="number"
+        placeholder="Ingresa el costo estimado"
+        formControlName="estimatedCost"
+        mode="currency"
+        currency="COP"
+        locale="es-CO"
+        [min]="1"
+        [max]="99999999"
+      ></app-input-custom>
+
+      <app-input-custom
+        label="Duración Estimada"
+        type="number"
+        placeholder="Horas estimadas de trabajo"
+        formControlName="estimatedDuration"
+        [min]="0.5"
+        [max]="200"
+        [step]="0.5"
+        suffix=" hrs"
+      ></app-input-custom>
+    </div>
+
+    <!-- Row 5: Final Cost & Actual Duration (only for completed/delivered) -->
+    @if (showCompletionFields()) {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-input-custom
+          label="Costo Final (COP)"
+          type="number"
+          placeholder="Costo final de la reparación"
+          formControlName="finalCost"
+          mode="currency"
+          currency="COP"
+          locale="es-CO"
+          [min]="1"
+          [max]="99999999"
+        ></app-input-custom>
+
+        <app-input-custom
+          label="Duración Real"
+          type="number"
+          placeholder="Horas reales trabajadas"
+          formControlName="actualDuration"
+          [min]="0.5"
+          [max]="200"
+          [step]="0.5"
+          suffix=" hrs"
+        ></app-input-custom>
+      </div>
+    }
+
+    <!-- Row 6: Technician Notes -->
+    <div class="form-field mb-6">
+      <label for="technician-notes" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+        <i class="pi pi-wrench mr-1"></i>
+        Notas del Técnico
+      </label>
+      <textarea
+        id="technician-notes"
+        formControlName="technicianNotes"
+        placeholder="Procedimientos realizados, piezas utilizadas, observaciones técnicas..."
+        rows="3"
+        class="w-full p-3 border border-surface-300 dark:border-surface-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-surface-800 dark:text-surface-0 resize-none"
+        maxlength="1000"
+      ></textarea>
+      <div class="text-right mt-1">
+        <small class="text-surface-500 text-xs">
+          {{ repairForm.get('technicianNotes')?.value?.length || 0 }}/1000 caracteres
+        </small>
+      </div>
+    </div>
+
+    <!-- Row 7: Client Notes -->
+    <div class="form-field mb-6">
+      <label for="client-notes" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
+        <i class="pi pi-user mr-1"></i>
+        Notas del Cliente
+      </label>
+      <textarea
+        id="client-notes"
+        formControlName="clientNotes"
+        placeholder="Comentarios del cliente, solicitudes especiales, observaciones..."
+        rows="2"
+        class="w-full p-3 border border-surface-300 dark:border-surface-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-surface-800 dark:text-surface-0 resize-none"
+        maxlength="500"
+      ></textarea>
+      <div class="text-right mt-1">
+        <small class="text-surface-500 text-xs">
+          {{ repairForm.get('clientNotes')?.value?.length || 0 }}/500 caracteres
+        </small>
+      </div>
+    </div>
+
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-2">
+      <p-button
+        label="Cancelar"
+        icon="pi pi-times"
+        [text]="true"
+        (onClick)="handleClose()"
+        [disabled]="isLoading()"
+      ></p-button>
+      <p-button
+        [label]="submitButtonLabel()"
+        icon="pi pi-check"
+        [loading]="isLoading()"
+        [disabled]="repairForm.invalid || isLoading()"
+        (onClick)="onSubmit()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>

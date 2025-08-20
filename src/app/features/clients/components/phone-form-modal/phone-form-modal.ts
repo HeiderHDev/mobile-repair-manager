@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, input, OnChanges, output, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { InputCustom } from '@shared/components/input/input';
+import { InputCustom } from '@shared/components/input-custom/input-custom';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';

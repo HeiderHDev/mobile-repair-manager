@@ -11,6 +11,7 @@ import { PhoneClient } from '@clients/services/phone-client';
 import { Notification } from '@core/services/notification/notification';
 import { Client } from '@clients/interfaces/cliente.interface';
 import { Phone } from '@clients/interfaces/phone.interface';
+import { PhoneFormModal } from "../phone-form-modal/phone-form-modal";
 
 @Component({
   selector: 'app-client-phones',
@@ -20,8 +21,9 @@ import { Phone } from '@clients/interfaces/phone.interface';
     ButtonModule,
     TagModule,
     DividerModule,
-    SkeletonModule
-  ],
+    SkeletonModule,
+    PhoneFormModal
+],
   templateUrl: './client-phones.html',
   styles: `
     .client-phones-view {
@@ -44,6 +46,10 @@ export class ClientPhones implements OnInit {
   readonly clientService = inject(ClientData);
   readonly phoneService = inject(PhoneClient);
   private readonly notificationService = inject(Notification);
+
+  
+  showPhoneModal = signal(false);
+  selectedPhone = signal<Phone | null>(null);
 
   client = signal<Client | null>(null);
   phones = signal<Phone[]>([]);
@@ -73,20 +79,25 @@ export class ClientPhones implements OnInit {
     this.router.navigate(['/clients']);
   }
 
-  openAddPhoneModal(): void {
-    // TODO: Implement phone form modal
-    this.notificationService.info(
-      'Funcionalidad pendiente',
-      'El formulario para agregar teléfonos estará disponible próximamente'
-    );
+  closePhoneModal(): void {
+    this.showPhoneModal.set(false);
+    this.selectedPhone.set(null);
   }
 
-  editPhone(): void {
-    // TODO: Implement edit phone functionality
-    this.notificationService.info(
-      'Funcionalidad pendiente',
-      'La edición de teléfonos estará disponible próximamente'
-    );
+  handlePhoneSaved(): void {
+    this.loadClientPhones(this.clientId());
+  }
+
+  // CORREGIDO: Ahora abre el modal en lugar de mostrar notificación
+  openAddPhoneModal(): void {
+    this.selectedPhone.set(null);
+    this.showPhoneModal.set(true);
+  }
+
+  // CORREGIDO: Ahora recibe el parámetro phone y abre el modal
+  editPhone(phone: Phone): void {
+    this.selectedPhone.set(phone);
+    this.showPhoneModal.set(true);
   }
 
   deletePhone(phoneId: string): void {

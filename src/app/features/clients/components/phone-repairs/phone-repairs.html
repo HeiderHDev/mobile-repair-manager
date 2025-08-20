@@ -1,0 +1,247 @@
+<div class="phone-repairs-view p-4">
+  @if (client() && phone()) {
+    <!-- Header Section -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-4">
+        <p-button
+          icon="pi pi-arrow-left"
+          [text]="true"
+          (onClick)="goBackToPhones()"
+          pTooltip="Volver a teléfonos"
+        ></p-button>
+        <div>
+          <h1 class="text-2xl font-bold text-surface-900 dark:text-surface-0">
+            Reparaciones - {{ phone()?.brand }} {{ phone()?.model }}
+          </h1>
+          <p class="text-surface-600 dark:text-surface-400">
+            Cliente: {{ client()?.firstName }} {{ client()?.lastName }}
+          </p>
+        </div>
+      </div>
+      <p-button
+        label="Nueva Reparación"
+        icon="pi pi-plus"
+        (onClick)="openNewRepairModal()"
+      ></p-button>
+    </div>
+
+    <!-- Phone Info Card -->
+    <p-card class="mb-6">
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-3 p-4 pb-0">
+          <i class="pi pi-mobile text-2xl text-primary"></i>
+          <div>
+            <h3 class="text-lg font-semibold mb-1">Información del Dispositivo</h3>
+            <p class="text-surface-600 dark:text-surface-400 text-sm">Detalles técnicos y estado</p>
+          </div>
+        </div>
+      </ng-template>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="info-item">
+          <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+            <i class="pi pi-tag mr-1"></i>
+            IMEI
+          </span>
+          <p class="text-surface-900 dark:text-surface-0 font-mono">{{ phone()?.imei }}</p>
+        </div>
+
+        <div class="info-item">
+          <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+            <i class="pi pi-palette mr-1"></i>
+            Color
+          </span>
+          <p class="text-surface-900 dark:text-surface-0">{{ phone()?.color || 'No especificado' }}</p>
+        </div>
+
+        <div class="info-item">
+          <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+            <i class="pi pi-info-circle mr-1"></i>
+            Condición
+          </span>
+          <p class="text-surface-900 dark:text-surface-0">{{ phone()?.condition }}</p>
+        </div>
+
+        <div class="info-item">
+          <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+            <i class="pi pi-calendar mr-1"></i>
+            Fecha de Compra
+          </span>
+          <p class="text-surface-900 dark:text-surface-0">
+            {{ phone()?.purchaseDate | date:'dd/MM/yyyy' }}
+          </p>
+        </div>
+
+        <div class="info-item">
+          <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+            <i class="pi pi-shield mr-1"></i>
+            Garantía
+          </span>
+          <div class="flex items-center gap-2">
+            <p class="text-surface-900 dark:text-surface-0">
+              {{ phone()?.warrantyExpiry | date:'dd/MM/yyyy' }}
+            </p>
+            <p-tag
+              [value]="isWarrantyExpired(phone()?.warrantyExpiry!) ? 'Vencida' : 'Vigente'"
+              [severity]="isWarrantyExpired(phone()?.warrantyExpiry!) ? 'danger' : 'success'"
+            ></p-tag>
+          </div>
+        </div>
+
+        @if (phone()?.notes) {
+          <div class="info-item md:col-span-2 lg:col-span-3">
+            <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+              <i class="pi pi-file-edit mr-1"></i>
+              Notas
+            </span>
+            <p class="text-surface-900 dark:text-surface-0">{{ phone()?.notes }}</p>
+          </div>
+        }
+      </div>
+    </p-card>
+
+    <!-- Repairs Timeline -->
+    <p-card>
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-3 p-4 pb-0">
+          <i class="pi pi-history text-2xl text-primary"></i>
+          <div>
+            <h3 class="text-lg font-semibold mb-1">Historial de Reparaciones</h3>
+            <p class="text-surface-600 dark:text-surface-400 text-sm">
+              {{ repairs().length }} reparación{{ repairs().length !== 1 ? 'es' : '' }} registrada{{ repairs().length !== 1 ? 's' : '' }}
+            </p>
+          </div>
+        </div>
+      </ng-template>
+
+      @if (timelineEvents().length > 0) {
+        <p-timeline
+          [value]="timelineEvents()"
+          layout="vertical"
+          align="alternate"
+          styleClass="customized-timeline"
+        >
+          <ng-template pTemplate="marker" let-event>
+            <div
+              class="flex w-8 h-8 items-center justify-center text-white rounded-full z-10 shadow-sm"
+              [style.background-color]="event.color"
+            >
+              <i [class]="event.icon" class="text-sm"></i>
+            </div>
+          </ng-template>
+
+          <ng-template pTemplate="content" let-event let-i="index">
+            <div class="timeline-content" [class]="i % 2 === 0 ? 'timeline-right' : 'timeline-left'">
+              <p-card>
+                <ng-template pTemplate="header">
+                  <div class="flex items-center justify-between p-4 pb-2">
+                    <div class="flex items-center gap-3">
+                      <p-tag [value]="event.status" [style.background-color]="event.color"></p-tag>
+                      <span class="text-sm text-surface-600 dark:text-surface-400">{{ event.date }}</span>
+                    </div>
+                    <div class="flex gap-2">
+                      <p-button
+                        icon="pi pi-pencil"
+                        size="small"
+                        [text]="true"
+                        (onClick)="editRepair(event.repair)"
+                        pTooltip="Editar reparación"
+                      ></p-button>
+                      <p-button
+                        icon="pi pi-trash"
+                        size="small"
+                        [text]="true"
+                        severity="danger"
+                        (onClick)="deleteRepair(event.repair.id)"
+                        pTooltip="Eliminar reparación"
+                      ></p-button>
+                    </div>
+                  </div>
+                </ng-template>
+
+                <div class="space-y-3">
+                  <div>
+                    <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+                      Descripción del Problema
+                    </span>
+                    <p class="text-surface-900 dark:text-surface-0">{{ event.repair.description }}</p>
+                  </div>
+
+                  @if (event.repair.diagnosis) {
+                    <div>
+                      <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+                        Diagnóstico
+                      </span>
+                      <p class="text-surface-900 dark:text-surface-0">{{ event.repair.diagnosis }}</p>
+                    </div>
+                  }
+
+                  @if (event.repair.solution) {
+                    <div>
+                      <span class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1">
+                        Solución Aplicada
+                      </span>
+                      <p class="text-surface-900 dark:text-surface-0">{{ event.repair.solution }}</p>
+                    </div>
+                  }
+
+                  <p-divider></p-divider>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span class="block font-medium text-surface-700 dark:text-surface-300 mb-1">
+                        Costo Estimado
+                      </span>
+                      <p class="text-surface-900 dark:text-surface-0 font-semibold">
+                        ${{ event.repair.estimatedCost | number:'1.2-2' }}
+                      </p>
+                    </div>
+                    <div>
+                      <span class="block font-medium text-surface-700 dark:text-surface-300 mb-1">
+                        Fecha Estimada
+                      </span>
+                      <p class="text-surface-900 dark:text-surface-0">
+                        {{ event.repair.estimatedCompletionDate | date:'dd/MM/yyyy' }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </p-card>
+            </div>
+          </ng-template>
+        </p-timeline>
+      } @else {
+        <div class="text-center py-12">
+          <i class="pi pi-wrench text-6xl text-surface-300 dark:text-surface-600 mb-4"></i>
+          <h3 class="text-lg font-semibold text-surface-700 dark:text-surface-300 mb-2">
+            No hay reparaciones registradas
+          </h3>
+          <p class="text-surface-500 dark:text-surface-400 mb-4">
+            Este dispositivo no tiene historial de reparaciones
+          </p>
+          <p-button
+            label="Crear Primera Reparación"
+            icon="pi pi-plus"
+            (onClick)="openNewRepairModal()"
+          ></p-button>
+        </div>
+      }
+    </p-card>
+  } @else {
+    <!-- Loading State -->
+    <div class="space-y-6">
+      <p-skeleton height="4rem"></p-skeleton>
+      <p-skeleton height="20rem"></p-skeleton>
+      <p-skeleton height="15rem"></p-skeleton>
+    </div>
+  }
+
+  <!-- Repair Form Modal -->
+  <app-repair-form-modal
+    [visible]="showRepairModal()"
+    [phoneId]="phoneId()"
+    [repair]="selectedRepair()"
+    (visibleChange)="closeRepairModal()"
+    (repairSaved)="handleRepairSaved()"
+  ></app-repair-form-modal>
+</div>

@@ -15,6 +15,26 @@
         (onFocus)="onFocus()"
         styleClass="w-full"
       ></p-select>
+    } @else if (type() === 'number') {
+      <p-inputnumber
+        [id]="generatedId()"
+        [ngModel]="currentValue()"
+        [placeholder]="placeholder()"
+        [disabled]="isDisabled()"
+        [class]="computedInputClasses()"
+        [mode]="mode()"
+        [currency]="currency()"
+        [locale]="locale()"
+        [min]="min() || 0"
+        [max]="max() || 999999999"
+        [step]="step()"
+        [suffix]="suffix()"
+        (ngModelChange)="onNumberChange($event)"
+        (onBlur)="onBlur()"
+        (onFocus)="onFocus()"
+        styleClass="w-full"
+        inputStyleClass="w-full"
+      ></p-inputnumber>
     } @else if (type() !== 'password') {
       <input
         pInputText

@@ -28,6 +28,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { SelectModule } from 'primeng/select';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { Subject, takeUntil } from 'rxjs';
 import { FORM_ERRORS, FormErrorsMessages, ValidationError } from '@core/constants/form-errors-messages';
 
@@ -42,9 +43,10 @@ import { FORM_ERRORS, FormErrorsMessages, ValidationError } from '@core/constant
     PasswordModule,
     FloatLabelModule,
     SelectModule,
+    InputNumberModule,
   ],
-  templateUrl: './input.html',
-  styleUrl: './input.css',
+  templateUrl: './input-custom.html',
+  styleUrl: './input-custom.css',
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -65,6 +67,11 @@ export class InputCustom implements OnInit, OnDestroy {
   readonly options = input<Record<string, unknown>[]>([]);
   readonly optionLabel = input<string>('label');
   readonly optionValue = input<string>('value');
+  readonly mode = input<string>('decimal');
+  readonly currency = input<string>('COP');
+  readonly locale = input<string>('es-CO');
+  readonly step = input<number>(1);
+  readonly suffix = input<string>('');
 
   private readonly disabledState = signal(false);
   private readonly valueState = signal('');
@@ -182,6 +189,13 @@ export class InputCustom implements OnInit, OnDestroy {
   }
 
   onSelectChange(value: unknown): void {
+    const stringValue = String(value ?? '');
+    this.valueState.set(stringValue);
+    this.onChange?.(stringValue);
+    this.updateControlState();
+  }
+
+  onNumberChange(value: number | null): void {
     const stringValue = String(value ?? '');
     this.valueState.set(stringValue);
     this.onChange?.(stringValue);

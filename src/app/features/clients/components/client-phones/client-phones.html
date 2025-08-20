@@ -201,7 +201,7 @@
                     size="small"
                     severity="info"
                     [outlined]="true"
-                    (onClick)="editPhone()"
+                    (onClick)="editPhone(phone)"
                   ></p-button>
                   <p-button
                     icon="pi pi-trash"
@@ -234,4 +234,12 @@
         </p-card>
       }
     </div>
+
+    <app-phone-form-modal
+        [visible]="showPhoneModal()"
+        [phone]="selectedPhone()"
+        [clientId]="clientId()"
+        (visibleChange)="closePhoneModal()"
+        (phoneSaved)="handlePhoneSaved()"
+      ></app-phone-form-modal>
   </div>

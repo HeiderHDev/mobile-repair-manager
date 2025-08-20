@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, OnChanges, output, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Notification } from '@core/services/notification/notification';
-import { InputCustom } from '@shared/components/input/input';
+import { InputCustom } from '@shared/components/input-custom/input-custom';
 import { CreateUserRequest } from '@users/interfaces/create-user-request.interface';
 import { UpdateUserRequest } from '@users/interfaces/update-user-request.interface';
 import { User } from '@users/interfaces/user.interface';

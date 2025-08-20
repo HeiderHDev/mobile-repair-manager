@@ -9,7 +9,7 @@ import { Auth } from '@core/services/auth/auth';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
-import { InputCustom } from '@shared/components/input/input';
+import { InputCustom } from '@shared/components/input-custom/input-custom';
 
 @Component({
   selector: 'app-login',
