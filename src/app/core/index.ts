@@ -4,8 +4,8 @@ export * from './layout/navbar/navbar';
 export * from './layout/sidebar/sidebar';
 
 // Services
-export * from './services/loading';
-export * from './services/toast-message';
+export * from './services/loading/loading';
+export * from './services/toast/toast-message';
 
 // Interceptors
-export * from './interceptors/loading-interceptor';
+export * from './interceptors/loading/loading-interceptor';

@@ -1,7 +1,7 @@
 import { NgxToastModule } from '@angular-magic/ngx-toast';
 import { ChangeDetectorRef, Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Loading } from './core/services/loading';
+import { Loading } from './core/services/loading/loading';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Spinner } from './shared/components/spinner/spinner';
 
