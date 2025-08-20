@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RepairStatus } from '@clients/enum/repair-status.enum';
 import { ClientData } from '@clients/services/client-data';
@@ -77,8 +77,7 @@ import { TimelineModule } from 'primeng/timeline';
     }
   `
 })
-export class PhoneRepairs {
-  // Injected services
+export class PhoneRepairs implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly clientService = inject(ClientData);
@@ -86,7 +85,6 @@ export class PhoneRepairs {
   readonly repairService = inject(RepairPhoneClient);
   private readonly notificationService = inject(Notification);
 
-  // Internal state
   readonly client = signal<Client | null>(null);
   readonly phone = signal<Phone | null>(null);
   readonly repairs = signal<Repair[]>([]);
@@ -95,7 +93,6 @@ export class PhoneRepairs {
   readonly phoneId = signal<string>('');
   readonly clientId = signal<string>('');
 
-  // Computed properties
   readonly timelineEvents = computed(() => {
     return this.repairs().map(repair => ({
       repair,
@@ -172,7 +169,6 @@ export class PhoneRepairs {
   }
 
   private loadData(clientId: string, phoneId: string): void {
-    // Load client data
     this.clientService.getClientById(clientId).subscribe({
       next: (client) => {
         if (client) {
@@ -181,7 +177,6 @@ export class PhoneRepairs {
       }
     });
 
-    // Load phone data
     this.phoneService.getPhoneById(phoneId).subscribe({
       next: (phone) => {
         if (phone) {

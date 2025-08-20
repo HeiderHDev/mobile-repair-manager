@@ -1,9 +1,6 @@
-/* Input component styles */
 .input-container {
   width: 100%;
 }
-
-/* Custom styles for PrimeNG components */
 :host ::ng-deep .p-float-label {
   width: 100%;
 }

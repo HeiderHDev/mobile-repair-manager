@@ -1,4 +1,3 @@
-// src/app/features/clients/components/repair-form-modal/repair-form-modal.component.ts
 import { Component, inject, input, output, signal, computed, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -122,7 +121,6 @@ export class RepairFormModal implements OnChanges {
   }
 
   private setupFormSubscriptions(): void {
-    // Watch status changes to show/hide final cost and duration fields
     this.repairForm.get('status')?.valueChanges.subscribe(status => {
       const finalCostControl = this.repairForm.get('finalCost');
       const actualDurationControl = this.repairForm.get('actualDuration');

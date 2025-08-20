@@ -5,7 +5,7 @@ import { Layout } from '@core/layout/layout';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/dashboard',
+    redirectTo: '/clients',
     pathMatch: 'full'
   },
   {
@@ -40,6 +40,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: '/dashboard'
+    redirectTo: '/clients'
   }
 ];

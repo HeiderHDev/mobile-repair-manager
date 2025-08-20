@@ -88,13 +88,11 @@ export class ClientPhones implements OnInit {
     this.loadClientPhones(this.clientId());
   }
 
-  // CORREGIDO: Ahora abre el modal en lugar de mostrar notificación
   openAddPhoneModal(): void {
     this.selectedPhone.set(null);
     this.showPhoneModal.set(true);
   }
 
-  // CORREGIDO: Ahora recibe el parámetro phone y abre el modal
   editPhone(phone: Phone): void {
     this.selectedPhone.set(phone);
     this.showPhoneModal.set(true);
