@@ -32,11 +32,11 @@ export class UsersList implements OnInit {
   isLoading = signal(false);
 
   readonly tableConfig = computed<TableConfig<User>>(() => ({
-    title: 'Gestión de Usuarios Administradores',
+    title: 'Gestión de usuarios administradores',
     columns: this.getTableColumns(),
     actions: this.getTableActions(),
     showAddButton: true,
-    addButtonLabel: 'Nuevo Usuario',
+    addButtonLabel: 'Nuevo usuario',
     onAdd: () => this.openCreateModal(),
     showSearch: true,
     searchPlaceholder: 'Buscar usuarios...',
@@ -87,13 +87,13 @@ export class UsersList implements OnInit {
       },
       {
         field: 'fullName',
-        header: 'Nombre Completo',
+        header: 'Nombre completo',
         sortable: true,
         width: '200px'
       },
       {
         field: 'email',
-        header: 'Correo Electrónico',
+        header: 'Correo electrónico',
         sortable: true,
         width: '250px'
       },
@@ -111,14 +111,14 @@ export class UsersList implements OnInit {
       },
       {
         field: 'createdAt',
-        header: 'Fecha Creación',
+        header: 'Fecha de creación',
         type: 'date',
         sortable: true,
         width: '150px'
       },
       {
         field: 'lastLogin',
-        header: 'Último Acceso',
+        header: 'Último acceso',
         type: 'date',
         sortable: true,
         width: '150px'
@@ -136,7 +136,7 @@ export class UsersList implements OnInit {
         visible: (user) => user.role !== UserRole.SUPER_ADMIN
       },
       {
-        label: 'Toggle Estado',
+        label: 'Toggle estado',
         icon: 'pi pi-power-off',
         severity: 'danger',
         action: (user) => this.toggleUserStatus(user.id),
