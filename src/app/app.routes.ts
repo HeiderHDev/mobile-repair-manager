@@ -13,28 +13,8 @@ export const routes: Routes = [
             },
             {
                 path: 'dashboard',
-                loadComponent: () => import('@features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+                loadComponent: () => import('@features/dashboard/dashboard.component').then(c => c.DashboardComponent)
             },
-            {
-                path: 'repairs',
-                redirectTo: 'dashboard'
-            },
-            {
-                path: 'customers',
-                redirectTo: 'dashboard'
-            },
-            {
-                path: 'inventory',
-                redirectTo: 'dashboard'
-            },
-            {
-                path: 'finance',
-                redirectTo: 'dashboard'
-            },
-            {
-                path: 'settings',
-                redirectTo: 'dashboard'
-            }
         ]
     }
 ];
