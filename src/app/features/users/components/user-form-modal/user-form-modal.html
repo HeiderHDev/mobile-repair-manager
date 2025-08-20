@@ -9,7 +9,6 @@
     >
       <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="space-y-6">
         
-        <!-- Username -->
         <app-input-custom
           label="Nombre de Usuario"
           type="text"
@@ -18,7 +17,6 @@
           [maxlength]="50"
         ></app-input-custom>
 
-        <!-- Email -->
         <app-input-custom
           label="Correo Electrónico"
           type="email"
@@ -27,7 +25,6 @@
           [maxlength]="100"
         ></app-input-custom>
 
-        <!-- Full Name -->
         <app-input-custom
           label="Nombre Completo"
           type="text"
@@ -36,7 +33,6 @@
           [maxlength]="100"
         ></app-input-custom>
 
-        <!-- Password (only for create) -->
         @if (!isEditMode()) {
           <app-input-custom
             label="Contraseña"
@@ -48,7 +44,6 @@
           ></app-input-custom>
         }
 
-        <!-- Role -->
         <app-input-custom
           label="Rol"
           type="select"
@@ -59,7 +54,6 @@
           optionValue="value"
         ></app-input-custom>
 
-        <!-- Active Status (only for edit) -->
         @if (isEditMode()) {
           <div class="flex items-center gap-2">
             <input
