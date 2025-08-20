@@ -2,6 +2,7 @@ import { RepairPriority } from "@clients/enum/repair-priority.enum";
 
 export interface CreateRepairRequest {
     phoneId: string;
+    customerId: string;
     issue: string;
     description: string;
     priority: RepairPriority;

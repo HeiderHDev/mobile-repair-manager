@@ -238,8 +238,9 @@
 
   <!-- Repair Form Modal -->
   <app-repair-form-modal
-    [visible]="showRepairModal()"
+  [visible]="showRepairModal()"
     [phoneId]="phoneId()"
+    [customerId]="currentCustomerId()"
     [repair]="selectedRepair()"
     (visibleChange)="closeRepairModal()"
     (repairSaved)="handleRepairSaved()"

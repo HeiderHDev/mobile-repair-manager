@@ -49,6 +49,7 @@ export class RepairFormModal implements OnChanges {
   readonly visible = input<boolean>(false);
   readonly repair = input<Repair | null>(null);
   readonly phoneId = input.required<string>();
+  readonly customerId = input.required<string>();
   readonly visibleChange = output<boolean>();
   readonly repairSaved = output<Repair>();
 
@@ -166,6 +167,7 @@ export class RepairFormModal implements OnChanges {
     const formValue = this.repairForm.value;
     const createRequest: CreateRepairRequest = {
       phoneId: this.phoneId(),
+      customerId: this.customerId(),
       issue: formValue.issue,
       description: formValue.description,
       priority: formValue.priority,

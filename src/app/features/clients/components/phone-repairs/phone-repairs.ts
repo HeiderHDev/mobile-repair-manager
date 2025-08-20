@@ -92,6 +92,7 @@ export class PhoneRepairs implements OnInit {
   readonly selectedRepair = signal<Repair | null>(null);
   readonly phoneId = signal<string>('');
   readonly clientId = signal<string>('');
+  readonly currentCustomerId = computed(() => this.clientId());
 
   readonly timelineEvents = computed(() => {
     return this.repairs().map(repair => ({
