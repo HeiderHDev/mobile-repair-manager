@@ -22,7 +22,7 @@ import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
     ProgressSpinnerModule,
     Input],
   templateUrl: './login.html',
-  styleUrl: './login.css'
+  styles: []
 })
 export class Login implements OnDestroy {
   private readonly fb = inject(FormBuilder);

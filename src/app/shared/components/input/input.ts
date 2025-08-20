@@ -52,7 +52,6 @@ import { FORM_ERRORS, FormErrorsMessages, ValidationError } from '@core/constant
   ],
 })
 export class Input implements OnInit, OnDestroy {
-  // Input signals - Nueva sintaxis de Angular 17+
   readonly maxlength = input<number | null>(null);
   readonly max = input<number | null>(null);
   readonly min = input<number | null>(null);
@@ -62,13 +61,11 @@ export class Input implements OnInit, OnDestroy {
   readonly showPasswordFeedback = input<boolean>(false);
   readonly showPasswordToggle = input<boolean>(true);
 
-  // Signals para estado interno - nombres únicos sin conflictos
   private readonly disabledState = signal(false);
   private readonly valueState = signal('');
   private readonly touchedState = signal(false);
   private readonly controlErrorsState = signal<ValidationError | null>(null);
 
-  // Computed signals con nombres únicos
   readonly generatedId = computed(() => `input-${Math.random().toString(36).substr(2, 9)}`);
   
   readonly computedIsRequired = computed(() => {
@@ -99,16 +96,13 @@ export class Input implements OnInit, OnDestroy {
     return `${baseClasses} ${errorClasses}`.trim();
   });
 
-  // Readonly accessors para el template
   readonly currentValue = this.valueState.asReadonly();
   readonly isDisabled = this.disabledState.asReadonly();
 
-  // Dependencias inyectadas
   private readonly injector = inject(Injector);
   private readonly errorMessages = inject(FORM_ERRORS);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  // ControlValueAccessor properties
   public control!: FormControl;
   public onChange!: (value: string) => void;
   public onTouch!: () => void;
@@ -116,7 +110,6 @@ export class Input implements OnInit, OnDestroy {
   private readonly _unsubscribe = new Subject<void>();
 
   constructor() {
-    // Effect para detectar cambios en el control y actualizar errores
     effect(() => {
       if (this.control) {
         this.controlErrorsState.set(this.control.errors);
@@ -133,7 +126,6 @@ export class Input implements OnInit, OnDestroy {
     this._unsubscribe.complete();
   }
 
-  // ControlValueAccessor implementation
   writeValue(value: string): void {
     this.valueState.set(value || '');
   }
@@ -150,7 +142,6 @@ export class Input implements OnInit, OnDestroy {
     this.disabledState.set(isDisabled);
   }
 
-  // Event handlers
   onInput(event: Event): void {
     const target = event.target as HTMLInputElement;
     const newValue = target.value;
@@ -163,10 +154,8 @@ export class Input implements OnInit, OnDestroy {
     let newValue: string;
     
     if (typeof value === 'string') {
-      // Called from ngModelChange
       newValue = value;
     } else {
-      // Called from regular input event
       const target = value.target as HTMLInputElement;
       newValue = target.value;
     }
@@ -183,7 +172,8 @@ export class Input implements OnInit, OnDestroy {
   }
 
   onFocus(): void {
-    // Optional: Handle focus events if needed
+    this.touchedState.set(false);
+    this.updateControlState();
   }
 
   private updateControlState(): void {
@@ -196,7 +186,6 @@ export class Input implements OnInit, OnDestroy {
     try {
       const ngControl = this.injector.get(NgControl, null);
       if (ngControl) {
-        // Evitar referencia circular
         ngControl.valueAccessor = this;
         this.setControl(ngControl);
       }
@@ -221,7 +210,6 @@ export class Input implements OnInit, OnDestroy {
     const { control, update } = ngControl;
     this.control = control;
     
-    // Suscribirse a cambios del control
     this.control.valueChanges
       .pipe(takeUntil(this._unsubscribe))
       .subscribe(value => {
