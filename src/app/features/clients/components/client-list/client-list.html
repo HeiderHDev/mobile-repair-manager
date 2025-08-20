@@ -1,0 +1,14 @@
+<div class="clients-management">
+    <app-data-table
+      [data]="clients()"
+      [config]="tableConfig()"
+      (actionExecuted)="handleTableAction($event)"
+    ></app-data-table>
+
+    <app-client-form-modal
+      [visible]="showClientModal()"
+      [client]="selectedClient()"
+      (visibleChange)="closeClientModal()"
+      (clientSaved)="handleClientSaved()"
+    ></app-client-form-modal>
+  </div>
