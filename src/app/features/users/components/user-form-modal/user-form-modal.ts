@@ -5,9 +5,9 @@ import { UpdateUserRequest } from '@features/users/interfaces/update-user-reques
 import { User } from '@features/users/interfaces/user.interface';
 import { UserData } from '@features/users/services/user-data';
 import { InputCustom } from '@shared/components/input/input';
-import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
+import { Notification } from '@core/services/notification/notification';
 @Component({
   selector: 'app-user-form-modal',
   imports: [InputCustom, Dialog, ButtonModule, ReactiveFormsModule],
@@ -27,168 +27,156 @@ import { Dialog } from 'primeng/dialog';
   `
 })
 export class UserFormModal implements OnChanges {
- readonly visible = input<boolean>(false);
- readonly user = input<User | null>(null);
- readonly visibleChange = output<boolean>();
- readonly userSaved = output<User>();
+  // Input signals
+  readonly visible = input<boolean>(false);
+  readonly user = input<User | null>(null);
 
- isLoading = signal(false);
- private readonly userService = inject(UserData);
- private readonly messageService = inject(MessageService);
- private readonly fb = inject(FormBuilder);
+  // Output events
+  readonly visibleChange = output<boolean>();
+  readonly userSaved = output<User>();
 
- userForm: FormGroup;
- roleOptions = this.userService.getRoleOptions();
+  // Internal state
+  isLoading = signal(false);
+  private readonly userService = inject(UserData);
+  private readonly notificationService = inject(Notification);
+  private readonly fb = inject(FormBuilder);
 
- readonly isEditMode = computed(() => !!this.user());
- readonly dialogTitle = computed(() => 
-   this.isEditMode() ? 'Editar Usuario' : 'Crear Usuario'
- );
- readonly submitButtonLabel = computed(() => 
-   this.isEditMode() ? 'Actualizar' : 'Crear'
- );
+  // Form
+  userForm: FormGroup;
+  roleOptions = this.userService.getRoleOptions();
 
- constructor() {
-   this.userForm = this.createForm();
- }
+  // Computed properties
+  readonly isEditMode = computed(() => !!this.user());
+  readonly dialogTitle = computed(() => 
+    this.isEditMode() ? 'Editar Usuario' : 'Crear Usuario'
+  );
+  readonly submitButtonLabel = computed(() => 
+    this.isEditMode() ? 'Actualizar' : 'Crear'
+  );
 
- ngOnChanges(): void {
-   if (this.visible()) {
-     this.resetForm();
-     if (this.user()) {
-       this.populateForm(this.user()!);
-     }
-   }
- }
+  constructor() {
+    this.userForm = this.createForm();
+  }
 
- onSubmit(): void {
-   if (this.userForm.valid && !this.isLoading()) {
-     this.isLoading.set(true);
+  ngOnChanges(): void {
+    if (this.visible()) {
+      this.resetForm();
+      if (this.user()) {
+        this.populateForm(this.user()!);
+      }
+    }
+  }
 
-     if (this.isEditMode()) {
-       this.updateUser();
-     } else {
-       this.createUser();
-     }
-   } else {
-     this.markFormGroupTouched();
-   }
- }
+  onSubmit(): void {
+    if (this.userForm.valid && !this.isLoading()) {
+      this.isLoading.set(true);
 
- handleClose(): void {
-   this.visibleChange.emit(false);
-   this.resetForm();
- }
+      if (this.isEditMode()) {
+        this.updateUser();
+      } else {
+        this.createUser();
+      }
+    } else {
+      this.markFormGroupTouched();
+    }
+  }
 
- private createForm(): FormGroup {
-   return this.fb.group({
-     username: ['', [Validators.required, Validators.minLength(3)]],
-     email: ['', [Validators.required, Validators.email]],
-     fullName: ['', [Validators.required, Validators.minLength(2)]],
-     password: ['', [Validators.required, Validators.minLength(6)]],
-     role: ['', [Validators.required]],
-     isActive: [true]
-   });
- }
+  handleClose(): void {
+    this.visibleChange.emit(false);
+    this.resetForm();
+  }
 
- private resetForm(): void {
-   this.userForm.reset();
-   this.updatePasswordValidators();
- }
+  private createForm(): FormGroup {
+    return this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.required, Validators.email]],
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      role: ['', [Validators.required]],
+      isActive: [true]
+    });
+  }
 
- private populateForm(user: User): void {
-   this.userForm.patchValue({
-     username: user.username,
-     email: user.email,
-     fullName: user.fullName,
-     role: user.role,
-     isActive: user.isActive
-   });
-   this.updatePasswordValidators();
- }
+  private resetForm(): void {
+    this.userForm.reset();
+    this.updatePasswordValidators();
+  }
 
- private updatePasswordValidators(): void {
-   const passwordControl = this.userForm.get('password');
-   if (this.isEditMode()) {
-     passwordControl?.clearValidators();
-   } else {
-     passwordControl?.setValidators([Validators.required, Validators.minLength(6)]);
-   }
-   passwordControl?.updateValueAndValidity();
- }
+  private populateForm(user: User): void {
+    this.userForm.patchValue({
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      isActive: user.isActive
+    });
+    this.updatePasswordValidators();
+  }
 
- private createUser(): void {
-   const formValue = this.userForm.value;
-   const createRequest: CreateUserRequest = {
-     username: formValue.username,
-     email: formValue.email,
-     fullName: formValue.fullName,
-     password: formValue.password,
-     role: formValue.role
-   };
+  private updatePasswordValidators(): void {
+    const passwordControl = this.userForm.get('password');
+    if (this.isEditMode()) {
+      passwordControl?.clearValidators();
+    } else {
+      passwordControl?.setValidators([Validators.required, Validators.minLength(6)]);
+    }
+    passwordControl?.updateValueAndValidity();
+  }
 
-   this.userService.createUser(createRequest).subscribe({
-     next: (user) => {
-       this.isLoading.set(false);
-       this.messageService.add({
-         severity: 'success',
-         summary: 'Usuario creado',
-         detail: 'El usuario ha sido creado exitosamente'
-       });
-       this.userSaved.emit(user);
-       this.handleClose();
-     },
-     error: (error) => {
-      console.error(error);
-       this.isLoading.set(false);
-       this.messageService.add({
-         severity: 'error',
-         summary: 'Error',
-         detail: 'No se pudo crear el usuario'
-       });
-     }
-   });
- }
+  private createUser(): void {
+    const formValue = this.userForm.value;
+    const createRequest: CreateUserRequest = {
+      username: formValue.username,
+      email: formValue.email,
+      fullName: formValue.fullName,
+      password: formValue.password,
+      role: formValue.role
+    };
 
- private updateUser(): void {
-   const formValue = this.userForm.value;
-   const updateRequest: UpdateUserRequest = {
-     id: this.user()!.id,
-     username: formValue.username,
-     email: formValue.email,
-     fullName: formValue.fullName,
-     role: formValue.role,
-     isActive: formValue.isActive
-   };
+    this.userService.createUser(createRequest).subscribe({
+      next: (user) => {
+        this.isLoading.set(false);
+        this.notificationService.userCreated('Usuario');
+        this.userSaved.emit(user);
+        this.handleClose();
+      },
+      error: (error) => {
+        this.notificationService.error('Error al crear usuario', error);
+        this.isLoading.set(false);
+      }
+    });
+  }
 
-   this.userService.updateUser(updateRequest).subscribe({
-     next: (user) => {
-       this.isLoading.set(false);
-       this.messageService.add({
-         severity: 'success',
-         summary: 'Usuario actualizado',
-         detail: 'El usuario ha sido actualizado exitosamente'
-       });
-       this.userSaved.emit(user);
-       this.handleClose();
-     },
-     error: (error) => {
-      console.error(error);
-       this.isLoading.set(false);
-       this.messageService.add({
-         severity: 'error',
-         summary: 'Error',
-         detail: 'No se pudo actualizar el usuario'
-       });
-     }
-   });
- }
+  private updateUser(): void {
+    const formValue = this.userForm.value;
+    const updateRequest: UpdateUserRequest = {
+      id: this.user()!.id,
+      username: formValue.username,
+      email: formValue.email,
+      fullName: formValue.fullName,
+      role: formValue.role,
+      isActive: formValue.isActive
+    };
 
- private markFormGroupTouched(): void {
-   Object.keys(this.userForm.controls).forEach(key => {
-     const control = this.userForm.get(key);
-     control?.markAsTouched();
-     control?.markAsDirty();
-   });
- }
+    this.userService.updateUser(updateRequest).subscribe({
+      next: (user) => {
+        this.isLoading.set(false);
+        this.notificationService.userUpdated('Usuario');
+        this.userSaved.emit(user);
+        this.handleClose();
+      },
+      error: (error) => {
+        this.notificationService.error('Error al actualizar usuario', error);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  private markFormGroupTouched(): void {
+    Object.keys(this.userForm.controls).forEach(key => {
+      const control = this.userForm.get(key);
+      control?.markAsTouched();
+      control?.markAsDirty();
+    });
+  }
 }

@@ -1,19 +1,22 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { User } from '../interfaces/user.interface';
 import { HttpClient } from '@angular/common/http';
-import { delay, map, Observable, of } from 'rxjs';
+import { delay, map, Observable, of, throwError } from 'rxjs';
 import { UserRole } from '@core/enum/auth/user-role.enum';
 import { CreateUserRequest } from '../interfaces/create-user-request.interface';
 import { UpdateUserRequest } from '../interfaces/update-user-request.interface';
+import { Notification } from '@core/services/notification/notification';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserData {
+  private readonly http = inject(HttpClient);
+  private readonly notificationService = inject(Notification);
+  
   private usersState = signal<User[]>([]);
   readonly users = this.usersState.asReadonly();
 
-  // Mock data for development
   private mockUsers: User[] = [
     {
       id: '1',
@@ -61,8 +64,6 @@ export class UserData {
     this.loadUsers();
   }
 
-  private http = inject(HttpClient);
-
   getUsers(): Observable<User[]> {
     // Simulate API call
     return of(this.mockUsers).pipe(
@@ -80,6 +81,20 @@ export class UserData {
   }
 
   createUser(userData: CreateUserRequest): Observable<User> {
+    if (this.mockUsers.some(u => u.username === userData.username)) {
+      return throwError(() => ({
+        status: 409,
+        error: { message: 'El nombre de usuario ya existe' }
+      }));
+    }
+
+    if (this.mockUsers.some(u => u.email === userData.email)) {
+      return throwError(() => ({
+        status: 409,
+        error: { message: 'El correo electrónico ya está registrado' }
+      }));
+    }
+
     const newUser: User = {
       id: (this.mockUsers.length + 1).toString(),
       ...userData,
@@ -98,7 +113,24 @@ export class UserData {
     const userIndex = this.mockUsers.findIndex(u => u.id === userData.id);
     
     if (userIndex === -1) {
-      throw new Error('Usuario no encontrado');
+      return throwError(() => ({
+        status: 404,
+        error: { message: 'Usuario no encontrado' }
+      }));
+    }
+
+    if (userData.username && this.mockUsers.some(u => u.username === userData.username && u.id !== userData.id)) {
+      return throwError(() => ({
+        status: 409,
+        error: { message: 'El nombre de usuario ya existe' }
+      }));
+    }
+
+    if (userData.email && this.mockUsers.some(u => u.email === userData.email && u.id !== userData.id)) {
+      return throwError(() => ({
+        status: 409,
+        error: { message: 'El correo electrónico ya está registrado' }
+      }));
     }
 
     const updatedUser = {
@@ -116,7 +148,26 @@ export class UserData {
     const userIndex = this.mockUsers.findIndex(u => u.id === id);
     
     if (userIndex === -1) {
-      throw new Error('Usuario no encontrado');
+      return throwError(() => ({
+        status: 404,
+        error: { message: 'Usuario no encontrado' }
+      }));
+    }
+
+    const user = this.mockUsers[userIndex];
+    
+    if (user.isActive) {
+      return throwError(() => ({
+        status: 400,
+        error: { message: 'No se puede eliminar un usuario activo. Desactívalo primero.' }
+      }));
+    }
+
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return throwError(() => ({
+        status: 403,
+        error: { message: 'No se puede eliminar un Super Administrador' }
+      }));
     }
 
     this.mockUsers.splice(userIndex, 1);
@@ -129,7 +180,19 @@ export class UserData {
     const userIndex = this.mockUsers.findIndex(u => u.id === id);
     
     if (userIndex === -1) {
-      throw new Error('Usuario no encontrado');
+      return throwError(() => ({
+        status: 404,
+        error: { message: 'Usuario no encontrado' }
+      }));
+    }
+
+    const user = this.mockUsers[userIndex];
+
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return throwError(() => ({
+        status: 403,
+        error: { message: 'No se puede cambiar el estado de un Super Administrador' }
+      }));
     }
 
     this.mockUsers[userIndex].isActive = !this.mockUsers[userIndex].isActive;
@@ -142,7 +205,6 @@ export class UserData {
     this.getUsers().subscribe();
   }
 
-  // Utility methods
   getRoleLabel(role: UserRole): string {
     const roleLabels = {
       [UserRole.SUPER_ADMIN]: 'Super Admin',
