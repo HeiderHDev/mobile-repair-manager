@@ -45,7 +45,6 @@ import { MenuUtils } from '@shared/Utils/menu.utils';
 
       <ng-template pTemplate="content">
         <div class="flex flex-col h-full">
-          <!-- Menu Items -->
           <nav class="flex-1 py-4">
             <ul class="space-y-2">
               @for (item of visibleMenuItems; track item.id) {
@@ -72,7 +71,6 @@ import { MenuUtils } from '@shared/Utils/menu.utils';
             </ul>
           </nav>
 
-          <!-- Footer -->
           <div class="border-t border-surface-200 dark:border-surface-700 pt-4 px-2">
             <div class="text-center text-sm text-surface-500 dark:text-surface-400">
               <p>Version 1.0.0</p>

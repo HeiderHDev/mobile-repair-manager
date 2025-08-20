@@ -1,6 +1,5 @@
 <div class="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950 px-4">
     <div class="w-full max-w-md">
-      <!-- Header -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
           <i class="pi pi-mobile text-white text-2xl"></i>
@@ -13,12 +12,10 @@
         </p>
       </div>
 
-      <!-- Login Form -->
       <p-card styleClass="shadow-lg">
         <ng-template pTemplate="content">
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
             
-            <!-- Error Message -->
             <p-message 
               *ngIf="errorMessage" 
               severity="error" 
@@ -26,7 +23,6 @@
               styleClass="w-full"
             ></p-message>
 
-            <!-- Username Field -->
             <app-input-custom
               label="Usuario"
               type="text"
@@ -36,7 +32,6 @@
               aria-label="Usuario"
             ></app-input-custom>
 
-            <!-- Password Field -->
             <app-input-custom
               label="Contraseña"
               type="password"
@@ -47,7 +42,6 @@
               aria-label="Contraseña"
             ></app-input-custom>
 
-            <!-- Submit Button -->
             <button
               pButton
               type="submit"
@@ -62,7 +56,6 @@
         </ng-template>
       </p-card>
 
-      <!-- Demo Credentials -->
       <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
           Credenciales de Demo:
@@ -73,7 +66,6 @@
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="text-center mt-8">
         <p class="text-sm text-surface-500 dark:text-surface-400">
           © 2025 Mobile Repair Manager. Todos los derechos reservados.

@@ -9,7 +9,6 @@
     >
       <form [formGroup]="phoneForm" (ngSubmit)="onSubmit()" class="space-y-6">
         
-        <!-- Row 1: Brand & Model -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <app-input-custom
             label="Marca"
@@ -28,7 +27,6 @@
           ></app-input-custom>
         </div>
 
-        <!-- Row 2: IMEI & Color -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <app-input-custom
             label="IMEI"
@@ -47,7 +45,6 @@
           ></app-input-custom>
         </div>
 
-        <!-- Row 3: Condition -->
         <app-input-custom
           label="Condición del Dispositivo"
           type="select"
@@ -58,7 +55,6 @@
           optionValue="value"
         ></app-input-custom>
 
-        <!-- Row 4: Purchase Date & Warranty Expiry -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="form-field mb-6">
             <label for="purchase-date" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
@@ -95,7 +91,6 @@
           </div>
         </div>
 
-        <!-- Row 5: Notes -->
         <div class="form-field mb-6">
           <label for="notes-textarea" class="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-2">
             <i class="pi pi-file-edit mr-1"></i>
@@ -119,7 +114,6 @@
           </div>
         </div>
 
-        <!-- Active Status (only for edit) -->
         @if (isEditMode()) {
           <div class="flex items-center gap-3 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg">
             <p-checkbox

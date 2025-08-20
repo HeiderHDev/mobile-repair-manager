@@ -10,13 +10,10 @@ import { LayoutOptions } from '../services/layout/layout-options';
   imports: [RouterOutlet, Navbar, Sidebar],
   template: `
     <div class="min-h-screen bg-surface-50 dark:bg-surface-950">
-      <!-- Navbar -->
       <app-navbar></app-navbar>
       
-      <!-- Sidebar -->
       <app-sidebar></app-sidebar>
       
-      <!-- Main Content -->
       <main class="transition-all duration-300">
         <div class="container mx-auto px-4 py-6">
           <router-outlet></router-outlet>

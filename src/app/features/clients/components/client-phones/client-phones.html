@@ -1,5 +1,4 @@
 <div class="client-phones-view p-4">
-    <!-- Breadcrumb -->
     <div class="mb-4">
       <button
         (click)="goBackToClients()"
@@ -10,7 +9,6 @@
       </button>
     </div>
 
-    <!-- Client Information Card -->
     @if (client(); as clientData) {
       <div class="mb-6">
         <p-card>
@@ -90,7 +88,6 @@
         </p-card>
       </div>
     } @else {
-      <!-- Loading Client Info -->
       <div class="mb-6">
         <p-card>
           <p-skeleton height="2rem" class="mb-2"></p-skeleton>
@@ -104,7 +101,6 @@
       </div>
     }
 
-    <!-- Phones Section -->
     <div>
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-bold text-surface-900 dark:text-surface-0">
@@ -117,7 +113,6 @@
         ></p-button>
       </div>
 
-      <!-- Phones Grid -->
       @if (phones().length > 0) {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           @for (phone of phones(); track phone.id) {
@@ -221,7 +216,6 @@
           }
         </div>
       } @else {
-        <!-- Empty State -->
         <p-card>
           <div class="text-center py-8">
             <i class="pi pi-mobile text-6xl text-surface-300 dark:text-surface-600 mb-4"></i>
