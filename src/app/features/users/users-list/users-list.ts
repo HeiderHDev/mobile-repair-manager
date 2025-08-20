@@ -23,17 +23,14 @@ import { Notification } from '@core/services/notification/notification';
   styles: ``
 })
 export class UsersList implements OnInit {
-  // Injected services
   private readonly userService = inject(UserData);
   private readonly notificationService = inject(Notification);
 
-  // Internal state
   users = signal<User[]>([]);
   showUserModal = signal(false);
   selectedUser = signal<User | null>(null);
   isLoading = signal(false);
 
-  // Table configuration
   readonly tableConfig = computed<TableConfig<User>>(() => ({
     title: 'Gestión de Usuarios Administradores',
     columns: this.getTableColumns(),

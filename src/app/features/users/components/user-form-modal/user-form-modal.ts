@@ -1,13 +1,13 @@
 import { Component, computed, inject, input, OnChanges, output, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CreateUserRequest } from '@features/users/interfaces/create-user-request.interface';
-import { UpdateUserRequest } from '@features/users/interfaces/update-user-request.interface';
-import { User } from '@features/users/interfaces/user.interface';
-import { UserData } from '@features/users/services/user-data';
+import { Notification } from '@core/services/notification/notification';
 import { InputCustom } from '@shared/components/input/input';
+import { CreateUserRequest } from '@users/interfaces/create-user-request.interface';
+import { UpdateUserRequest } from '@users/interfaces/update-user-request.interface';
+import { User } from '@users/interfaces/user.interface';
+import { UserData } from '@users/services/user-data';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
-import { Notification } from '@core/services/notification/notification';
 @Component({
   selector: 'app-user-form-modal',
   imports: [InputCustom, Dialog, ButtonModule, ReactiveFormsModule],
