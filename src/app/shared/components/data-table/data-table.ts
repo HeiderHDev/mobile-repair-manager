@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { Component, computed, inject, input, OnDestroy, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -45,24 +45,19 @@ import { TableConfig } from '@shared/interfaces/table/table-config.interface';
     }
     `]
 })
-export class DataTable<T extends BaseEntity> implements OnInit, OnDestroy {
-// Input signals
+export class DataTable<T extends BaseEntity> implements OnDestroy {
 readonly data = input.required<T[]>();
 readonly config = input.required<TableConfig<T>>();
 
-// Output events
-readonly actionExecuted = output<{ action: string; item: T }>();
+readonly actionExecuted = output<{ action: string; item: T }>();  
 
-// Internal state
 searchControl = new FormControl('');
 private readonly searchValue = signal('');
 private readonly destroy$ = new Subject<void>();
 
-// Injected services
 private readonly confirmationService = inject(ConfirmationService);
 private readonly messageService = inject(MessageService);
 
-// Computed properties
 readonly filteredData = computed(() => {
   const searchTerm = this.searchValue().toLowerCase().trim();
   if (!searchTerm) return this.data();
@@ -76,7 +71,6 @@ readonly filteredData = computed(() => {
 });
 
 constructor() {
-  // Setup search functionality
   this.searchControl.valueChanges
     .pipe(
       debounceTime(300),
@@ -87,9 +81,6 @@ constructor() {
       this.searchValue.set(value || '');
     });
 }
-  ngOnInit(): void {
-    throw new Error('Method not implemented.');
-  }
 
 ngOnDestroy(): void {
   this.destroy$.next();

@@ -17,7 +17,6 @@
     }
 
     <ng-template pTemplate="content">
-      <!-- Search Bar -->
       @if (config().showSearch) {
         <div class="mb-4">
           <div class="p-input-icon-left w-full md:w-auto">
@@ -33,7 +32,6 @@
         </div>
       }
 
-      <!-- Table -->
       <p-table
         [value]="filteredData()"
         [paginator]="config().paginator ?? true"
