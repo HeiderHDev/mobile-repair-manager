@@ -1,13 +1,18 @@
 .input-container {
   width: 100%;
+  position: relative;
 }
+
 :host ::ng-deep .p-float-label {
   width: 100%;
 }
 
 :host ::ng-deep .p-inputtext,
-:host ::ng-deep .p-password input {
+:host ::ng-deep .p-password input,
+:host ::ng-deep .p-select,
+:host ::ng-deep .p-inputnumber input {
   width: 100%;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 :host ::ng-deep .p-invalid {
@@ -17,4 +22,46 @@
 :host ::ng-deep .p-invalid:focus {
   border-color: #ef4444;
   box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.2);
+}
+
+:host ::ng-deep .p-inputtext:focus,
+:host ::ng-deep .p-password input:focus,
+:host ::ng-deep .p-select:focus,
+:host ::ng-deep .p-inputnumber input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+}
+
+:host ::ng-deep .p-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-message {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #ef4444;
+  line-height: 1.25;
+}
+
+.required-indicator {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+.form-spacing-sm {
+  margin-bottom: 1rem;
+}
+
+.form-spacing-md {
+  margin-bottom: 1.5rem;
+}
+
+.form-spacing-lg {
+  margin-bottom: 2rem;
+}
+
+.form-spacing-none {
+  margin-bottom: 0;
 }

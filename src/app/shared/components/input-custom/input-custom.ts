@@ -1,29 +1,30 @@
 import {
   ChangeDetectorRef,
   Component,
-  forwardRef,
-  input,
-  OnInit,
-  OnDestroy,
-  inject,
-  signal,
-  effect,
   computed,
+  effect,
+  forwardRef,
+  inject,
   Injector,
+  input,
+  OnDestroy,
+  OnInit,
+  signal,
 } from '@angular/core';
 import {
   FormControl,
   FormControlDirective,
   FormControlName,
   FormGroupDirective,
+  FormsModule,
   NG_VALUE_ACCESSOR,
   NgControl,
   NgModel,
+  ReactiveFormsModule,
   ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { FloatLabelModule } from 'primeng/floatlabel';
@@ -56,17 +57,22 @@ import { FORM_ERRORS, FormErrorsMessages, ValidationError } from '@core/constant
   ],
 })
 export class InputCustom implements OnInit, OnDestroy {
-  readonly maxlength = input<number | null>(null);
-  readonly max = input<number | null>(null);
-  readonly min = input<number | null>(null);
   readonly label = input<string>('');
   readonly type = input<string>('text');
   readonly placeholder = input<string>('');
+  readonly marginBottom = input<string>('mb-6');
+  
+  readonly maxlength = input<number | null>(null);
+  readonly max = input<number | null>(null);
+  readonly min = input<number | null>(null);
+  
   readonly showPasswordFeedback = input<boolean>(false);
   readonly showPasswordToggle = input<boolean>(true);
+  
   readonly options = input<Record<string, unknown>[]>([]);
   readonly optionLabel = input<string>('label');
   readonly optionValue = input<string>('value');
+  
   readonly mode = input<string>('decimal');
   readonly currency = input<string>('COP');
   readonly locale = input<string>('es-CO');
@@ -106,6 +112,13 @@ export class InputCustom implements OnInit, OnDestroy {
     const errorClasses = this.computedShowError() ? 'p-invalid' : '';
     
     return `${baseClasses} ${errorClasses}`.trim();
+  });
+
+  readonly computedContainerClasses = computed(() => {
+    const baseClasses = 'input-container w-full';
+    const spacingClasses = this.marginBottom();
+    
+    return `${baseClasses} ${spacingClasses}`.trim();
   });
 
   readonly currentValue = this.valueState.asReadonly();
