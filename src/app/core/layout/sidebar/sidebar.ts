@@ -2,85 +2,61 @@ import { Component, effect, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { PanelMenuModule } from 'primeng/panelmenu';
 import { LayoutOptions } from '../../services/layout/layout-options';
 import { DrawerModule } from 'primeng/drawer';
 import { RippleModule } from 'primeng/ripple';
+import { TooltipModule } from 'primeng/tooltip';
 import { MenuItem } from '@shared/interfaces/menu/menu-item.interface';
 import { MenuUtils } from '@shared/Utils/menu.utils';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, PanelMenuModule, DrawerModule, RippleModule],
-  template: `
-    <p-drawer
-      [(visible)]="sidebarVisible"
-      position="left"
-      [modal]="true"
-      styleClass="w-80"
-      [showCloseIcon]="false"
-    >
-      <ng-template pTemplate="header">
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <i class="pi pi-mobile text-white text-sm"></i>
-            </div>
-            <span class="font-semibold text-surface-900 dark:text-surface-0">
-              Repair Manager
-            </span>
-          </div>
-          <button
-            aria-label="Cerrar menú"
-            pButton
-            type="button"
-            icon="pi pi-times"
-            [text]="true"
-            class="p-button-rounded p-button-sm"
-            (click)="closeSidebar()"
-          ></button>
-        </div>
-      </ng-template>
+  imports: [
+    CommonModule, 
+    RouterModule, 
+    ButtonModule, 
+    DrawerModule, 
+    RippleModule,
+    TooltipModule
+  ],
+  templateUrl: './sidebar.html',
+  styles: [`
+    :host ::ng-deep .p-drawer-content {
+      padding: 0;
+    }
 
-      <ng-template pTemplate="content">
-        <div class="flex flex-col h-full">
-          <nav class="flex-1 py-4">
-            <ul class="space-y-2">
-              @for (item of visibleMenuItems; track item.id) {
-                <li>
-                  <a
-                    [routerLink]="item.route"
-                    routerLinkActive="bg-primary-50 dark:bg-primary-900 text-primary border-r-2 border-primary"
-                    class="flex items-center gap-3 px-4 py-3 text-surface-700 dark:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg mx-2 transition-colors duration-200"
-                    (click)="onMenuItemClick(item)"
-                    pRipple
-                  >
-                    <i [class]="item.icon" class="text-lg"></i>
-                    <span class="font-medium">{{ item.label }}</span>
-                    @if (item.badge) {
-                      <span 
-                        [class]="'ml-auto px-2 py-1 text-xs rounded-full ' + (item.badgeStyleClass || 'bg-primary text-primary-contrast')"
-                      >
-                        {{ item.badge }}
-                      </span>
-                    }
-                  </a>
-                </li>
-              }
-            </ul>
-          </nav>
+    :host ::ng-deep .p-drawer-header {
+      background: var(--surface-0);
+      border-bottom: 1px solid var(--surface-200);
+      padding: 1.25rem;
+    }
 
-          <div class="border-t border-surface-200 dark:border-surface-700 pt-4 px-2">
-            <div class="text-center text-sm text-surface-500 dark:text-surface-400">
-              <p>Version 1.0.0</p>
-            </div>
-          </div>
-        </div>
-      </ng-template>
-    </p-drawer>
-  `,
-  styles: []
+    :host-context(.dark) ::ng-deep .p-drawer-header {
+      background: var(--surface-900);
+      border-bottom-color: var(--surface-700);
+    }
+
+    :host ::ng-deep .p-ripple-effect {
+      background: rgba(var(--primary-500-rgb), 0.2);
+    }
+
+    :host ::ng-deep .router-link-active {
+      background: var(--primary-500) !important;
+      color: white !important;
+      box-shadow: 0 2px 8px rgba(var(--primary-500-rgb), 0.3);
+    }
+
+    :host ::ng-deep .router-link-active .group-hover\\:bg-primary-100,
+    :host ::ng-deep .router-link-active .group-hover\\:text-primary-600 {
+      background: rgba(255, 255, 255, 0.2) !important;
+      color: white !important;
+    }
+
+    :host ::ng-deep .router-link-active i {
+      color: white !important;
+    }
+  `]
 })
 export class Sidebar implements OnInit {
   private readonly layoutService = inject(LayoutOptions);
@@ -102,8 +78,14 @@ export class Sidebar implements OnInit {
 
   private initializeMenu(): void {
     this.menuItems = [
-      MenuUtils.createMenuItem('users', 'Usuarios', 'pi pi-users', '/users'),
-      MenuUtils.createMenuItem('clients', 'Clientes', 'pi pi-user', '/clients'),
+      {
+        ...MenuUtils.createMenuItem('clients', 'Clientes', 'pi pi-users', '/clients'),
+        badge: '12',
+        badgeStyleClass: 'info'
+      },
+      {
+        ...MenuUtils.createMenuItem('users', 'Usuarios', 'pi pi-user-plus', '/users')
+      }
     ];
     
     this.visibleMenuItems = MenuUtils.filterVisibleItems(this.menuItems);
@@ -113,10 +95,25 @@ export class Sidebar implements OnInit {
     if (item.command) {
       item.command();
     }
-    this.closeSidebar();  
+    this.closeSidebar();
   }
 
   protected closeSidebar(): void {
     this.layoutService.closeSidebar();
+  }
+
+  protected getBadgeClasses(styleClass?: string): string {
+    const baseClasses = 'bg-primary-100 text-primary-800 dark:bg-primary-800 dark:text-primary-200';
+    
+    const badgeStyles = {
+      info: 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200',
+      warning: 'bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-200',
+      success: 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200',
+      danger: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-200'
+    };
+
+    return styleClass && badgeStyles[styleClass as keyof typeof badgeStyles] 
+      ? badgeStyles[styleClass as keyof typeof badgeStyles] 
+      : baseClasses;
   }
 }
