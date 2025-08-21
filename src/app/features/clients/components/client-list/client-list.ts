@@ -1,14 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { DataTable, PaginatedResponse } from '@shared/components/data-table/data-table';
+import { Component, computed, inject, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { DataTable } from '@shared/components/data-table/data-table';
 import { ClientFormModal } from '../client-form-modal/client-form-modal';
 import { ClientData } from '@clients/services/client-data';
-import { Notification } from '@core/services/notification/notification';
-import { Router } from '@angular/router';
 import { Client } from '@clients/interfaces/cliente.interface';
 import { TableConfig } from '@shared/interfaces/table/table-config.interface';
-import { TableColumn } from '@shared/interfaces/table/table-column.interface';
-import { TableAction } from '@shared/interfaces/table/table-action.interface';
+import { ClientStateManager } from './helpers/client-state.manager';
+import { ClientTableHelper } from './helpers/client-table.helper';
+import { ClientActionHandler } from './helpers/client-action.handler';
 
 @Component({
   selector: 'app-client-list',
@@ -18,33 +18,34 @@ import { TableAction } from '@shared/interfaces/table/table-action.interface';
     ClientFormModal
   ],
   templateUrl: './client-list.html',
-  styles: `
+  styles: [`
     .clients-management {
       padding: 1rem;
-    } 
-  `
+    }
+  `]
 })
 export class ClientList implements OnInit {
   private readonly clientService = inject(ClientData);
-  private readonly notificationService = inject(Notification);
   private readonly router = inject(Router);
 
-  private readonly _paginatedData = signal<PaginatedResponse<Client> | null>(null);
-  readonly paginatedData = computed<PaginatedResponse<Client> | Client[]>(() => 
-    this._paginatedData() || []
+  private readonly stateManager = new ClientStateManager();
+  private readonly tableHelper = new ClientTableHelper();
+  private readonly actionHandler = new ClientActionHandler(
+    this.clientService,
+    this.router
   );
-  showClientModal = signal(false);
-  selectedClient = signal<Client | null>(null);
-  isLoading = signal(false);
-  
-  currentPage = signal(1);
-  pageSize = signal(10);
-  searchTerm = signal('');
+
+  readonly paginatedData = this.stateManager.paginatedData;
+  readonly showClientModal = this.stateManager.showClientModal;
+  readonly selectedClient = this.stateManager.selectedClient;
+  readonly isLoading = this.stateManager.isLoading;
 
   readonly tableConfig = computed<TableConfig<Client>>(() => ({
     title: 'Gestión de Clientes',
-    columns: this.getTableColumns(),
-    actions: this.getTableActions(),
+    columns: this.tableHelper.getTableColumns(),
+    actions: this.tableHelper.getTableActions((action, client) => 
+      this.handleTableAction({ action, item: client })
+    ),
     showAddButton: true,
     addButtonLabel: 'Nuevo Cliente',
     onAdd: () => this.openCreateModal(),
@@ -52,213 +53,60 @@ export class ClientList implements OnInit {
     searchPlaceholder: 'Buscar clientes...',
     emptyMessage: 'No hay clientes registrados',
     paginator: true,
-    rows: this.pageSize(),
+    rows: this.stateManager.pageSize(),
     rowsPerPageOptions: [5, 10, 20, 50]
   }));
 
   ngOnInit(): void {
-    this.loadClientsPaginated();
+    this.loadClients();
   }
 
   handleTableAction(event: { action: string; item: Client }): void {
-    const { action, item } = event;
-
-    switch (action.toLowerCase()) {
-      case 'editar':
-        this.openEditModal(item);
-        break;
-      case 'eliminar':
-        this.deleteClient(item.id);
-        break;
-      case 'ver teléfonos':
-        this.navigateToClientPhones(item.id);
-        break;
-      case 'toggle estado':
-        this.toggleClientStatus(item.id);
-        break;
-      default:
-        break;
-    }
+    this.actionHandler.execute(event.action, event.item, {
+      onEdit: (client) => this.openEditModal(client),
+      onRefreshData: () => this.loadClients()
+    });
   }
 
   handlePageChanged(event: { page: number; limit: number }): void {
-    this.currentPage.set(event.page);
-    this.pageSize.set(event.limit);
-    this.loadClientsPaginated();
+    this.stateManager.updatePagination(event.page, event.limit);
+    this.loadClients();
   }
 
   handleSearchChanged(searchTerm: string): void {
-    this.searchTerm.set(searchTerm);
-    this.currentPage.set(1);
-    this.loadClientsPaginated();
+    this.stateManager.updateSearch(searchTerm);
+    this.loadClients();
   }
 
   handleClientSaved(): void {
-    this.loadClientsPaginated();
+    this.loadClients();
   }
 
   closeClientModal(): void {
-    this.showClientModal.set(false);
-    this.selectedClient.set(null);
+    this.stateManager.closeModal();
   }
 
-  private getTableColumns(): TableColumn<Client>[] {
-    return [
-      {
-        field: 'firstName',
-        header: 'Nombre',
-        sortable: true,
-        width: '150px'
-      },
-      {
-        field: 'lastName',
-        header: 'Apellidos',
-        sortable: true,
-        width: '150px'
-      },
-      {
-        field: 'documentNumber',
-        header: 'Documento',
-        sortable: true,
-        width: '120px'
-      },
-      {
-        field: 'email',
-        header: 'Correo Electrónico',
-        sortable: true,
-        width: '200px'
-      },
-      {
-        field: 'phone',
-        header: 'Teléfono',
-        sortable: true,
-        width: '150px'
-      },
-      {
-        field: 'address',
-        header: 'Dirección',
-        sortable: false,
-        width: '200px'
-      },
-      {
-        field: 'isActive',
-        header: 'Estado',
-        type: 'boolean',
-        width: '100px'
-      },
-      {
-        field: 'createdAt',
-        header: 'Fecha Registro',
-        type: 'date',
-        sortable: true,
-        width: '150px'
-      }
-    ];
-  }
-
-  private getTableActions(): TableAction<Client>[] {
-    return [
-      {
-        label: 'Ver Teléfonos',
-        icon: 'pi pi-mobile',
-        severity: 'primary',
-        action: (client) => this.navigateToClientPhones(client.id)
-      },
-      {
-        label: 'Editar',
-        icon: 'pi pi-pencil',
-        severity: 'info',
-        action: (client) => this.openEditModal(client)
-      },
-      {
-        label: 'Toggle Estado',
-        icon: 'pi pi-power-off',
-        severity: 'info',
-        action: (client) => this.toggleClientStatus(client.id)
-      },
-      {
-        label: 'Eliminar',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        action: (client) => this.deleteClient(client.id),
-        disabled: (client) => client.isActive
-      }
-    ];
-  }
-
-  private loadClientsPaginated(): void {
-    this.isLoading.set(true);
+  private loadClients(): void {
+    this.stateManager.setLoading(true);
     
-    const params = {
-      page: this.currentPage(),
-      limit: this.pageSize(),
-      search: this.searchTerm() || undefined
-    };
+    const params = this.stateManager.getPaginationParams();
     
     this.clientService.getClientsPaginated(params).subscribe({
       next: (response) => {
-        this._paginatedData.set(response);
-        this.isLoading.set(false);
+        this.stateManager.setPaginatedData(response);
+        this.stateManager.setLoading(false);
       },
-      error: (error) => {
-        this.notificationService.error(
-          'Error al cargar clientes',
-          error?.error?.message || 'Error desconocido'
-        );
-        this.isLoading.set(false);
+      error: () => {
+        this.stateManager.setLoading(false);
       }
     });
   }
 
   private openCreateModal(): void {
-    this.selectedClient.set(null);
-    this.showClientModal.set(true);
+    this.stateManager.openCreateModal();
   }
 
   private openEditModal(client: Client): void {
-    this.selectedClient.set(client);
-    this.showClientModal.set(true);
-  }
-
-  private deleteClient(clientId: string): void {
-    this.clientService.deleteClient(clientId).subscribe({
-      next: () => {
-        this.notificationService.success(
-          'Cliente eliminado',
-          'El cliente ha sido eliminado exitosamente'
-        );
-        this.loadClientsPaginated();
-      },
-      error: (error) => {
-        this.notificationService.error(
-          'Error al eliminar cliente',
-          error?.error?.message || 'Error desconocido'
-        );
-      }
-    });
-  }
-
-  private toggleClientStatus(clientId: string): void {
-    this.clientService.toggleClientStatus(clientId).subscribe({
-      next: (updatedClient) => {
-        const status = updatedClient.isActive ? 'activado' : 'desactivado';
-        this.notificationService.info(
-          'Estado actualizado',
-          `El cliente ha sido ${status}`
-        );
-        this.loadClientsPaginated();
-      },
-      error: (error) => {
-        console.error('❌ Error al actualizar estado:', error);
-        this.notificationService.error(
-          'Error al actualizar estado',
-          error?.error?.message || 'Error desconocido'
-        );
-      }
-    });
-  }
-
-  private navigateToClientPhones(clientId: string): void {
-    this.router.navigate(['/clients', clientId, 'phones']);
+    this.stateManager.openEditModal(client);
   }
 }

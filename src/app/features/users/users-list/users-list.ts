@@ -1,15 +1,14 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { TableColumn } from '@shared/interfaces/table/table-column.interface';
-import { User } from '../interfaces/user.interface';
-import { TableConfig } from '@shared/interfaces/table/table-config.interface';
-import { TableAction } from '@shared/interfaces/table/table-action.interface';
-import { UserRole } from '@core/enum/auth/user-role.enum';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
-import { UserFormModal } from '../components/user-form-modal/user-form-modal';
 import { DataTable } from '@shared/components/data-table/data-table';
+import { UserFormModal } from '../components/user-form-modal/user-form-modal';
 import { UserData } from '../services/user-data';
-import { Notification } from '@core/services/notification/notification';
+import { User } from '../interfaces/user.interface';
+import { TableConfig } from '@shared/interfaces/table/table-config.interface';
+import { UserStateManager } from './helpers/user-state.manager';
+import { UserTableHelper } from './helpers/user-table.helper';
+import { UserActionHandler } from './helpers/user-action.handler';
 
 @Component({
   selector: 'app-users-list',
@@ -20,21 +19,29 @@ import { Notification } from '@core/services/notification/notification';
     ToastModule
   ],
   templateUrl: './users-list.html',
-  styles: ``
+  styles: []
 })
 export class UsersList implements OnInit {
   private readonly userService = inject(UserData);
-  private readonly notificationService = inject(Notification);
+  private readonly stateManager = new UserStateManager();
+  private readonly tableHelper = new UserTableHelper();
+  private readonly actionHandler = new UserActionHandler(
+    this.userService
+  );
 
-  users = signal<User[]>([]);
-  showUserModal = signal(false);
-  selectedUser = signal<User | null>(null);
-  isLoading = signal(false);
+  readonly users = this.stateManager.users;
+  readonly showUserModal = this.stateManager.showUserModal;
+  readonly selectedUser = this.stateManager.selectedUser;
+  readonly isLoading = this.stateManager.isLoading;
 
   readonly tableConfig = computed<TableConfig<User>>(() => ({
     title: 'Gestión de usuarios administradores',
-    columns: this.getTableColumns(),
-    actions: this.getTableActions(),
+    columns: this.tableHelper.getTableColumns(),
+    actions: this.tableHelper.getTableActions({
+      onEdit: (user) => this.openEditModal(user),
+      onToggleStatus: (user) => this.toggleUserStatus(user),
+      onDelete: (user) => this.deleteUser(user)
+    }),
     showAddButton: true,
     addButtonLabel: 'Nuevo usuario',
     onAdd: () => this.openCreateModal(),
@@ -51,21 +58,10 @@ export class UsersList implements OnInit {
   }
 
   handleTableAction(event: { action: string; item: User }): void {
-    const { action, item } = event;
-
-    switch (action.toLowerCase()) {
-      case 'editar':
-        this.openEditModal(item);
-        break;
-      case 'eliminar':
-        this.deleteUser(item.id);
-        break;
-      case 'toggle estado':
-        this.toggleUserStatus(item.id);
-        break;
-      default:
-        break;
-    }
+    this.actionHandler.execute(event.action, event.item, {
+      onEdit: (user) => this.openEditModal(user),
+      onRefreshData: () => this.loadUsers()
+    });
   }
 
   handleUserSaved(): void {
@@ -73,115 +69,35 @@ export class UsersList implements OnInit {
   }
 
   closeUserModal(): void {
-    this.showUserModal.set(false);
-    this.selectedUser.set(null);
-  }
-
-  private getTableColumns(): TableColumn<User>[] {
-    return [
-      {
-        field: 'username',
-        header: 'Usuario',
-        sortable: true,
-        width: '150px'
-      },
-      {
-        field: 'fullName',
-        header: 'Nombre completo',
-        sortable: true,
-        width: '200px'
-      },
-      {
-        field: 'email',
-        header: 'Correo electrónico',
-        sortable: true,
-        width: '250px'
-      },
-      {
-        field: 'role',
-        header: 'Rol',
-        sortable: true,
-        width: '120px'
-      },
-      {
-        field: 'isActive',
-        header: 'Estado',
-        type: 'boolean',
-        width: '100px'
-      },
-      {
-        field: 'createdAt',
-        header: 'Fecha de creación',
-        type: 'date',
-        sortable: true,
-        width: '150px'
-      },
-      {
-        field: 'lastLogin',
-        header: 'Último acceso',
-        type: 'date',
-        sortable: true,
-        width: '150px'
-      }
-    ];
-  }
-
-  private getTableActions(): TableAction<User>[] {
-    return [
-      {
-        label: 'Editar',
-        icon: 'pi pi-pencil',
-        severity: 'info',
-        action: (user) => this.openEditModal(user),
-        visible: (user) => user.role !== UserRole.SUPER_ADMIN
-      },
-      {
-        label: 'Toggle estado',
-        icon: 'pi pi-power-off',
-        severity: 'danger',
-        action: (user) => this.toggleUserStatus(user.id),
-        visible: (user) => user.role !== UserRole.SUPER_ADMIN
-      },
-      {
-        label: 'Eliminar',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        action: (user) => this.deleteUser(user.id),
-        visible: (user) => user.role !== UserRole.SUPER_ADMIN,
-        disabled: (user) => user.isActive
-      }
-    ];
+    this.stateManager.closeModal();
   }
 
   private loadUsers(): void {
-    this.isLoading.set(true);
+    this.stateManager.setLoading(true);
     
     this.userService.getUsers().subscribe({
       next: (users) => {
-        this.users.set(users);
-        this.isLoading.set(false);
+        this.stateManager.setUsers(users);
+        this.stateManager.setLoading(false);
       },
       error: () => {
-        this.isLoading.set(false);
+        this.stateManager.setLoading(false);
       }
     });
   }
 
   private openCreateModal(): void {
-    this.selectedUser.set(null);
-    this.showUserModal.set(true);
+    this.stateManager.openCreateModal();
   }
 
   private openEditModal(user: User): void {
-    this.selectedUser.set(user);
-    this.showUserModal.set(true);
+    this.stateManager.openEditModal(user);
   }
 
-  private deleteUser(userId: string): void {
-    this.userService.deleteUser(userId).subscribe({
+  private toggleUserStatus(user: User): void {
+    this.userService.toggleUserStatus(user.id).subscribe({
       next: () => {
         this.loadUsers();
-        this.notificationService.userDeleted('Usuario');
       },
       error: () => {
         this.loadUsers();
@@ -189,15 +105,10 @@ export class UsersList implements OnInit {
     });
   }
 
-  private toggleUserStatus(userId: string): void {
-    this.userService.toggleUserStatus(userId).subscribe({
-      next: (updatedUser) => {
+  private deleteUser(user: User): void {
+    this.userService.deleteUser(user.id).subscribe({
+      next: () => {
         this.loadUsers();
-        const status = updatedUser.isActive ? 'activado' : 'desactivado';
-        this.notificationService.info(
-          'Estado actualizado',
-          `El usuario ha sido ${status}`
-        );
       },
       error: () => {
         this.loadUsers();
