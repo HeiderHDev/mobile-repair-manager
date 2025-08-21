@@ -1,70 +1,138 @@
-<div class="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950 px-4">
-  <div class="w-full max-w-md">
+<!-- src/app/features/auth/login/login.html -->
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-primary-50 via-blue-50 to-surface-50 dark:from-primary-950 dark:via-blue-950 dark:to-surface-950">
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-400 rounded-full mix-blend-multiply opacity-20 animate-pulse"></div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply opacity-20 animate-pulse delay-1000"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-400 rounded-full mix-blend-multiply opacity-10 animate-bounce"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-md px-4 sm:px-6">
     <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
-        <i class="pi pi-mobile text-white text-2xl"></i>
+      <div class="relative inline-flex items-center justify-center mb-6">
+        <div class="relative z-10 flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl">
+          <i class="pi pi-mobile text-white text-3xl"></i>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-400 to-blue-400 rounded-2xl opacity-20 animate-ping"></div>
       </div>
-      <h1 class="text-3xl font-bold text-surface-900 dark:text-surface-0 mb-2">
-        Mobile Repair Manager - Heider Rey
+      
+      <h1 class="text-3xl sm:text-4xl font-bold text-surface-900 dark:text-surface-0 mb-2">
+        Mobile Repair Manager
       </h1>
+      
+      <h2 class="text-xl font-semibold text-primary-600 dark:text-primary-400 mb-4">
+        Heider Rey
+      </h2>
+      
       <p class="text-surface-600 dark:text-surface-300">
-        Ingresa tus credenciales para acceder
+        Ingresa tus credenciales para acceder al sistema
       </p>
     </div>
 
-    <p-card styleClass="shadow-lg">
-      <ng-template pTemplate="content">
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+    <div class="mb-6">
+      <p-card styleClass="shadow-2xl border-0 overflow-hidden backdrop-blur-sm bg-white/95 dark:bg-surface-900/95">
+        <ng-template pTemplate="header">
+          <div class="flex items-center justify-center p-6 pb-4 bg-gradient-to-r from-primary-50/80 to-blue-50/80 dark:from-primary-900/80 dark:to-blue-900/80 border-b-0">
+            <div class="flex items-center justify-center w-10 h-10 bg-primary-500 rounded-lg mr-3">
+              <i class="pi pi-sign-in text-white text-lg"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-surface-900 dark:text-surface-0">
+              Iniciar Sesión
+            </h3>
+          </div>
+        </ng-template>
 
-          <app-input-custom
-            label="Usuario"
-            type="text"
-            placeholder="Ingresa tu usuario"
-            formControlName="username"
-            [maxlength]="50"
-            aria-label="Usuario"
-          ></app-input-custom>
+        <ng-template pTemplate="content">
+          <div class="p-6 pt-2">
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+              <div class="space-y-2">
+                <app-input-custom
+                  label="Usuario"
+                  type="text"
+                  placeholder="Ingresa tu usuario"
+                  formControlName="username"
+                  [maxlength]="50"
+                  aria-label="Usuario"
+                ></app-input-custom>
+              </div>
 
-          <app-input-custom
-            label="Contraseña"
-            type="password"
-            placeholder="Ingresa tu contraseña"
-            formControlName="password"
-            [showPasswordFeedback]="false"
-            [showPasswordToggle]="true"
-            aria-label="Contraseña"
-          ></app-input-custom>
+              <div class="space-y-2">
+                <app-input-custom
+                  label="Contraseña"
+                  type="password"
+                  placeholder="Ingresa tu contraseña"
+                  formControlName="password"
+                  [showPasswordFeedback]="false"
+                  [showPasswordToggle]="true"
+                  aria-label="Contraseña"
+                ></app-input-custom>
+              </div>
 
-          <button
-            pButton
-            type="submit"
-            label="Iniciar Sesión"
-            icon="pi pi-sign-in"
-            [loading]="isLoading"
-            [disabled]="loginForm.invalid || isLoading"
-            class="w-full p-button-lg"
-            aria-label="Iniciar Sesión"
-          ></button>
-        </form>
-      </ng-template>
-    </p-card>
+              <div class="space-y-2">
+                <button
+                  pButton
+                  type="submit"
+                  label="Iniciar Sesión"
+                  icon="pi pi-sign-in"
+                  [loading]="isLoading"
+                  [disabled]="loginForm.invalid || isLoading"
+                  class="w-full p-button-lg font-semibold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                  aria-label="Iniciar Sesión"
+                ></button>
+              </div>
 
-    <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-      <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-        Credenciales de Demo:
-      </h3>
-      <div class="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-        <p><strong>Usuario:</strong> admin</p>
-        <p><strong>Contraseña:</strong> admin123</p>
+              <p-divider align="center" type="solid" styleClass="my-6">
+                <span class="px-3 py-1 text-sm font-medium bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400 rounded-full">
+                  o
+                </span>
+              </p-divider>
+
+              <div class="space-y-2">
+                <button
+                  pButton
+                  type="button"
+                  label="Usar credenciales de demo"
+                  icon="pi pi-user"
+                  severity="secondary"
+                  [disabled]="isLoading"
+                  class="w-full font-medium border-2 border-dashed border-surface-300 dark:border-surface-600 bg-transparent hover:bg-surface-50 dark:hover:bg-surface-800 hover:border-solid transition-all duration-300"
+                  (click)="fillDemoCredentials()"
+                  aria-label="Llenar con credenciales de demostración"
+                ></button>
+              </div>
+            </form>
+          </div>
+        </ng-template>
+      </p-card>
+    </div>
+
+    <div class="mb-6 p-4 bg-blue-50/80 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl backdrop-blur-sm">
+      <div class="flex items-center justify-center mb-3 text-sm font-semibold text-blue-700 dark:text-blue-300">
+        <i class="pi pi-info-circle mr-2 text-base"></i>
+        <span>Credenciales de Demo</span>
+      </div>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-blue-700 dark:text-blue-300">Usuario:</span>
+          <code class="px-2 py-1 bg-surface-200 dark:bg-surface-700 text-surface-800 dark:text-surface-200 rounded font-mono text-xs">
+            {{ demoCredentials.username }}
+          </code>
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-blue-700 dark:text-blue-300">Contraseña:</span>
+          <code class="px-2 py-1 bg-surface-200 dark:bg-surface-700 text-surface-800 dark:text-surface-200 rounded font-mono text-xs">
+            {{ demoCredentials.password }}
+          </code>
+        </div>
       </div>
     </div>
 
-    <div class="text-center mt-8">
-      <p class="text-sm text-surface-500 dark:text-surface-400">
-        © 2025 Mobile Repair Manager. Todos los derechos reservados.
-      </p>
+    <div class="text-center text-sm space-y-2 text-surface-500 dark:text-surface-400">
+      <p>© 2025 Mobile Repair Manager. Todos los derechos reservados.</p>
+      <div class="flex items-center justify-center">
+        <span class="text-primary-600 dark:text-primary-400">
+          Desarrollado por Heider Rey
+        </span>
+      </div>
     </div>
-
-    <p-toast></p-toast>
   </div>
 </div>

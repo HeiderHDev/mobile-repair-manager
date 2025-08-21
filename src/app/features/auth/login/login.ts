@@ -1,19 +1,21 @@
 // src/app/features/auth/login/login.ts
 import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ToastModule } from 'primeng/toast';
+import { DividerModule } from 'primeng/divider';
 import { Auth } from '@core/services/auth/auth';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, finalize } from 'rxjs';
 import { LoginRequest } from '@core/interfaces/auth/login-request.interface';
 import { InputCustom } from '@shared/components/input-custom/input-custom';
-import { ToastModule } from 'primeng/toast';
 import { Notification } from '@core/services/notification/notification';
-import { HttpErrorResponse } from '@angular/common/http';
+import { LoginFormHelper } from './helpers/login-form.helper';
+import { LoginErrorHandler } from './helpers/login-error-handler';
 
 @Component({
   selector: 'app-login',
@@ -25,7 +27,8 @@ import { HttpErrorResponse } from '@angular/common/http';
     MessageModule,
     ProgressSpinnerModule,
     InputCustom,
-    ToastModule
+    ToastModule,
+    DividerModule
   ],
   templateUrl: './login.html',
   styles: []
@@ -36,16 +39,22 @@ export class Login implements OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly notificationService = inject(Notification);
-  private readonly destroy$ = new Subject<void>();
 
-  loginForm: FormGroup;
+  private readonly formHelper = new LoginFormHelper(this.fb);
+  private readonly errorHandler = new LoginErrorHandler(this.notificationService);
+
+  private readonly destroy$ = new Subject<void>();
+  loginForm!: FormGroup;
   isLoading = false;
   private returnUrl = '/clients';
 
+  readonly demoCredentials = {
+    username: 'superadmin',
+    password: 'admin123'
+  };
+
   constructor() {
-    this.loginForm = this.createLoginForm();
-    this.checkAuthStatus();
-    this.getReturnUrl();
+    this.initializeComponent();
   }
 
   ngOnDestroy(): void {
@@ -57,15 +66,18 @@ export class Login implements OnDestroy {
     if (this.loginForm.valid && !this.isLoading) {
       this.performLogin();
     } else {
-      this.markFormGroupTouched();
+      this.formHelper.markAllFieldsAsTouched(this.loginForm);
     }
   }
 
-  private createLoginForm(): FormGroup {
-    return this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
+  fillDemoCredentials(): void {
+    this.loginForm.patchValue(this.demoCredentials);
+  }
+
+  private initializeComponent(): void {
+    this.loginForm = this.formHelper.createLoginForm();
+    this.checkAuthStatus();
+    this.getReturnUrl();
   }
 
   private checkAuthStatus(): void {
@@ -74,7 +86,7 @@ export class Login implements OnDestroy {
       .subscribe({
         next: (isAuthenticated) => {
           if (isAuthenticated) {
-            this.router.navigate([this.returnUrl]);
+            this.navigateToReturnUrl();
           }
         },
         error: (error) => {
@@ -88,67 +100,33 @@ export class Login implements OnDestroy {
   }
 
   private performLogin(): void {
-    this.isLoading = true;
+    this.setLoadingState(true);
     const credentials: LoginRequest = this.loginForm.value;
 
     this.authService.login(credentials)
       .pipe(
         takeUntil(this.destroy$),
-        finalize(() => this.isLoading = false)
+        finalize(() => this.setLoadingState(false))
       )
       .subscribe({
-        next: () => {
-          this.notificationService.success(
-            'Bienvenido',
-            'Has iniciado sesión correctamente'
-          );
-          
-          this.router.navigate([this.returnUrl]);
-        },
-        error: (error) => {
-          this.handleLoginError(error);
-        }
+        next: () => this.handleLoginSuccess(),
+        error: (error) => this.errorHandler.handleLoginError(error)
       });
   }
 
-  private handleLoginError(error: HttpErrorResponse): void {
-    console.error('Login error:', error);
-    
-    switch (error.status) {
-      case 401:
-      case 400:
-        this.notificationService.error(
-          'Error de autenticación',
-          'Usuario o contraseña incorrectos'
-        );
-        break;
-      case 0:
-        this.notificationService.networkError();
-        break;
-      case 429:
-        this.notificationService.warning(
-          'Demasiados intentos',
-          'Has excedido el límite de intentos. Intenta nuevamente más tarde.'
-        );
-        break;
-      case 500:
-        this.notificationService.error(
-          'Error del servidor',
-          'Error interno del servidor. Intenta nuevamente.'
-        );
-        break;
-      default:
-        this.notificationService.error(
-          'Error de conexión',
-          'No se pudo conectar con el servidor. Verifica tu conexión e intenta nuevamente.'
-        );
-    }
+  private handleLoginSuccess(): void {
+    this.notificationService.success(
+      'Bienvenido',
+      'Has iniciado sesión correctamente'
+    );
+    this.navigateToReturnUrl();
   }
 
-  private markFormGroupTouched(): void {
-    Object.keys(this.loginForm.controls).forEach(key => {
-      const control = this.loginForm.get(key);
-      control?.markAsTouched();
-    });
+  private navigateToReturnUrl(): void {
+    this.router.navigate([this.returnUrl]);
+  }
+
+  private setLoadingState(loading: boolean): void {
+    this.isLoading = loading;
   }
 }
