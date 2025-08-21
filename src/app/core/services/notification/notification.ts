@@ -7,52 +7,29 @@ import { MessageService } from 'primeng/api';
 })
 export class Notification {
   private readonly messageService = inject(MessageService);
+  private readonly pendingNotifications = new Set<string>();
 
   private readonly DEFAULT_LIFE = 5000;
   private readonly STICKY_LIFE = 0;
+  private readonly DEDUPLICATION_WINDOW = 1000;
 
   success(summary: string, detail: string, options?: Partial<NotificationConfig>): void {
-    this.messageService.add({
-      severity: 'success',
-      summary,
-      detail,
-      life: options?.life ?? this.DEFAULT_LIFE,
-      sticky: options?.sticky ?? false,
-      ...options
-    });
+    this.addNotification('success', summary, detail, options);
   }
 
   error(summary: string, detail: string, options?: Partial<NotificationConfig>): void {
-    this.messageService.add({
-      severity: 'error',
-      summary,
-      detail,
-      life: options?.life ?? (options?.sticky ? this.STICKY_LIFE : this.DEFAULT_LIFE),
-      sticky: options?.sticky ?? false,
+    this.addNotification('error', summary, detail, {
+      life: options?.sticky ? this.STICKY_LIFE : this.DEFAULT_LIFE,
       ...options
     });
   }
 
   warning(summary: string, detail: string, options?: Partial<NotificationConfig>): void {
-    this.messageService.add({
-      severity: 'warn',
-      summary,
-      detail,
-      life: options?.life ?? this.DEFAULT_LIFE,
-      sticky: options?.sticky ?? false,
-      ...options
-    });
+    this.addNotification('warn', summary, detail, options);
   }
 
   info(summary: string, detail: string, options?: Partial<NotificationConfig>): void {
-    this.messageService.add({
-      severity: 'info',
-      summary,
-      detail,
-      life: options?.life ?? this.DEFAULT_LIFE,
-      sticky: options?.sticky ?? false,
-      ...options
-    });
+    this.addNotification('info', summary, detail, options);
   }
 
   userCreated(entityName = 'Usuario'): void {
@@ -101,9 +78,42 @@ export class Notification {
 
   clear(): void {
     this.messageService.clear();
+    this.pendingNotifications.clear();
   }
 
   clearByKey(key: string): void {
     this.messageService.clear(key);
+  }
+
+  private addNotification(
+    severity: 'success' | 'error' | 'warn' | 'info',
+    summary: string,
+    detail: string,
+    options?: Partial<NotificationConfig>
+  ): void {
+    const notificationKey = this.generateNotificationKey(severity, summary, detail);
+    
+    if (this.pendingNotifications.has(notificationKey)) {
+      return;
+    }
+
+    this.pendingNotifications.add(notificationKey);
+
+    this.messageService.add({
+      severity,
+      summary,
+      detail,
+      life: options?.life ?? this.DEFAULT_LIFE,
+      sticky: options?.sticky ?? false,
+      ...options
+    });
+
+    setTimeout(() => {
+      this.pendingNotifications.delete(notificationKey);
+    }, this.DEDUPLICATION_WINDOW);
+  }
+
+  private generateNotificationKey(severity: string, summary: string, detail: string): string {
+    return `${severity}_${summary}_${detail}`.substring(0, 100);
   }
 }

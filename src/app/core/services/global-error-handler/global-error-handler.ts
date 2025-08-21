@@ -13,108 +13,106 @@ export class GlobalErrorHandler implements ErrorHandler {
   private readonly router = inject(Router);
   private readonly authService = inject(Auth);
 
-  private readonly handledErrors = new Set<string>();
+  private readonly handledErrors = new Map<string, number>();
+  private readonly ERROR_TIMEOUT = 5000;
+  private readonly MAX_RETRIES = 1;
 
   handleError(error: Error | HttpErrorResponse): void {
     const errorId = this.generateErrorId(error);
+    const currentTime = Date.now();
     
-    if (this.handledErrors.has(errorId)) {
+    if (this.shouldSkipError(errorId, currentTime)) {
       return;
     }
-    
-    this.handledErrors.add(errorId);
-    
-    setTimeout(() => this.handledErrors.delete(errorId), 5000);
+
+    this.recordError(errorId, currentTime);
 
     if (error instanceof HttpErrorResponse) {
       this.handleHttpError(error);
     } else {
       this.handleClientError(error);
     }
+
+    this.scheduleErrorCleanup(errorId);
+  }
+
+  private shouldSkipError(errorId: string, currentTime: number): boolean {
+    const lastErrorTime = this.handledErrors.get(errorId);
+    return lastErrorTime !== undefined && (currentTime - lastErrorTime) < this.ERROR_TIMEOUT;
+  }
+
+  private recordError(errorId: string, currentTime: number): void {
+    this.handledErrors.set(errorId, currentTime);
+  }
+
+  private scheduleErrorCleanup(errorId: string): void {
+    setTimeout(() => {
+      this.handledErrors.delete(errorId);
+    }, this.ERROR_TIMEOUT);
   }
 
   private handleHttpError(error: HttpErrorResponse): void {
     this.logError(error);
 
-    if (error.url?.includes('/api/auth/') && error.status < 500) {
+    if (this.shouldIgnoreAuthError(error)) {
       return;
     }
 
-    switch (error.status) {
-      case 0:
-        this.handleNetworkError();
-        break;
+    const errorHandlers: Record<number, () => void> = {
+      0: () => this.handleNetworkError(),
+      400: () => this.handleBadRequest(error),
+      401: () => this.handleUnauthorized(error),
+      403: () => this.handleForbidden(),
+      404: () => this.handleNotFound(error),
+      409: () => this.handleConflict(error),
+      422: () => this.handleUnprocessableEntity(error),
+      429: () => this.handleTooManyRequests(),
+      500: () => this.handleInternalServerError(),
+      502: () => this.handleServiceUnavailable(error),
+      503: () => this.handleServiceUnavailable(error),
+      504: () => this.handleServiceUnavailable(error)
+    };
 
-      case 400:
-        this.handleBadRequest(error);
-        break;
-
-      case 401:
-        this.handleUnauthorized(error);
-        break;
-
-      case 403:
-        this.handleForbidden();
-        break;
-
-      case 404:
-        this.handleNotFound(error);
-        break;
-
-      case 409:
-        this.handleConflict(error);
-        break;
-
-      case 422:
-        this.handleUnprocessableEntity(error);
-        break;
-
-      case 429:
-        this.handleTooManyRequests();
-        break;
-
-      case 500:
-        this.handleInternalServerError();
-        break;
-
-      case 502:
-      case 503:
-      case 504:
-        this.handleServiceUnavailable(error);
-        break;
-
-      default:
-        this.handleUnknownError(error);
-        break;
+    const handler = errorHandlers[error.status];
+    if (handler) {
+      handler();
+    } else {
+      this.handleUnknownError(error);
     }
   }
 
   private handleClientError(error: Error): void {
     this.logError(error);
 
-    if (error.name === 'ChunkLoadError' || error.message?.includes('Loading chunk')) {
-      this.notificationService.warning(
-        'Nueva versión disponible',
-        'Se detectó una nueva versión de la aplicación. Recarga la página para continuar.',
-        { sticky: true }
-      );
+    const clientErrorHandlers = [
+      {
+        condition: (err: Error) => err.name === 'ChunkLoadError' || err.message?.includes('Loading chunk'),
+        handler: () => this.notificationService.warning(
+          'Nueva versión disponible',
+          'Se detectó una nueva versión de la aplicación. Recarga la página para continuar.',
+          { sticky: true }
+        )
+      },
+      {
+        condition: (err: Error) => err.message?.includes('Script error'),
+        handler: () => this.notificationService.error(
+          'Error de carga',
+          'Error al cargar recursos de la aplicación. Recarga la página.'
+        )
+      },
+      {
+        condition: (err: Error) => err.message?.includes('NetworkError') || err.message?.includes('fetch'),
+        handler: () => this.notificationService.networkError()
+      }
+    ];
+
+    const handler = clientErrorHandlers.find(h => h.condition(error));
+    if (handler) {
+      handler.handler();
       return;
     }
 
-    if (error.message?.includes('Script error')) {
-      this.notificationService.error(
-        'Error de carga',
-        'Error al cargar recursos de la aplicación. Recarga la página.'
-      );
-      return;
-    }
-
-    if (error.message?.includes('NetworkError') || error.message?.includes('fetch')) {
-      this.notificationService.networkError();
-      return;
-    }
-
-    if (this.isProduction() && this.isDevelopmentError(error)) {
+    if (this.shouldIgnoreClientError(error)) {
       return;
     }
     
@@ -124,12 +122,16 @@ export class GlobalErrorHandler implements ErrorHandler {
     );
   }
 
+  private shouldIgnoreAuthError(error: HttpErrorResponse): boolean {
+    return (error.url?.includes('/api/auth/') ?? false) && error.status < 500;
+  }
+
+  private shouldIgnoreClientError(error: Error): boolean {
+    return this.isProduction() && this.isDevelopmentError(error);
+  }
+
   private handleNetworkError(): void {
-    this.notificationService.error(
-      'Sin conexión',
-      'No se puede conectar con el servidor. Verifica tu conexión a internet.',
-      { sticky: true }
-    );
+    this.notificationService.networkError();
   }
 
   private handleBadRequest(error: HttpErrorResponse): void {
@@ -140,9 +142,7 @@ export class GlobalErrorHandler implements ErrorHandler {
   private handleUnauthorized(error: HttpErrorResponse): void {
     if (!error.url?.includes('/api/auth/login')) {
       this.notificationService.sessionExpired();
-      this.authService.logout().subscribe(() => {
-        this.router.navigate(['/auth/login']);
-      });
+      this.authService.forceLogout('session_expired');
     }
   }
 
@@ -217,42 +217,65 @@ export class GlobalErrorHandler implements ErrorHandler {
       return error.error;
     }
     
-    if (error.error?.message) {
-      return error.error.message;
+    const errorObj = error.error as Record<string, unknown>;
+    
+    const errorPaths = [
+      'message',
+      'detail', 
+      'error'
+    ];
+
+    for (const path of errorPaths) {
+      const value = this.getNestedProperty(errorObj, path);
+      if (typeof value === 'string') {
+        return value;
+      }
     }
     
-
-    if (error.error?.detail) {
-      return error.error.detail;
+    if (errorObj['errors'] && Array.isArray(errorObj['errors'])) {
+      const stringErrors = errorObj['errors'].filter((err): err is string => typeof err === 'string');
+      if (stringErrors.length > 0) {
+        return stringErrors.join(', ');
+      }
     }
 
-    if (error.error?.error) {
-      return typeof error.error.error === 'string' ? error.error.error : error.error.error.message;
-    }
-    
-    if (error.error?.errors && Array.isArray(error.error.errors)) {
-      return error.error.errors.join(', ');
-    }
-
-    if (typeof error.error === 'object' && error.error !== null) {
-      const keys = Object.keys(error.error);
-      for (const key of keys) {
-        const value = error.error[key];
-        if (typeof value === 'string') {
-          return value;
-        }
-        if (Array.isArray(value) && value.length > 0) {
-          return value.join(', ');
-        }
+    if (typeof errorObj === 'object' && errorObj !== null) {
+      const firstStringValue = this.findFirstStringValue(errorObj);
+      if (firstStringValue) {
+        return firstStringValue;
       }
     }
     
     return null;
   }
 
+  private getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
+    return path.split('.').reduce((current: unknown, key: string) => {
+      if (current && typeof current === 'object' && current !== null) {
+        return (current as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj);
+  }
+
+  private findFirstStringValue(obj: Record<string, unknown>): string | null {
+    for (const [, value] of Object.entries(obj)) {
+      if (typeof value === 'string') {
+        return value;
+      }
+      if (Array.isArray(value) && value.length > 0) {
+        const stringValues = value.filter((item): item is string => typeof item === 'string');
+        if (stringValues.length > 0) {
+          return stringValues.join(', ');
+        }
+      }
+    }
+    return null;
+  }
+
   private generateErrorId(error: Error | HttpErrorResponse): string {
     if (error instanceof HttpErrorResponse) {
-      return `http_${error.status}_${error.url}_${error.message}`.substring(0, 100);
+      return `http_${error.status}_${error.url?.split('?')[0]}_${error.message}`.substring(0, 100);
     }
     return `client_${error.name}_${error.message}`.substring(0, 100);
   }
@@ -305,24 +328,6 @@ export class GlobalErrorHandler implements ErrorHandler {
       console.warn('Error logging service not implemented. Error details:', error);
     } catch (loggingError) {
       console.error('Error sending to logging service:', loggingError);
-    }
-  }
-
-  handleCustomError(
-    message: string, 
-    severity: 'error' | 'warning' | 'info' = 'error',
-    sticky = false
-  ): void {
-    switch (severity) {
-      case 'error':
-        this.notificationService.error('Error', message, { sticky });
-        break;
-      case 'warning':
-        this.notificationService.warning('Advertencia', message, { sticky });
-        break;
-      case 'info':
-        this.notificationService.info('Información', message, { sticky });
-        break;
     }
   }
 
