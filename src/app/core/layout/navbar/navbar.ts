@@ -111,12 +111,12 @@ export class Navbar {
     return 'U';
   }
 
-  async logout(): Promise<void> {
-    try {
-      await this.authService.logout();
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
+  logout(): void {
+    this.authService.logout().subscribe({
+      error: (error) => {
+        console.error('Error during logout:', error);
+      }
+    });
   }
 
   private openProfile(): void {

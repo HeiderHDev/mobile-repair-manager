@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { RegisterRequest } from '@core/interfaces/auth/register-request.interface';
 import { environment } from '@env/environment';
 import { BehaviorSubject, catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { AuthState } from '../../interfaces/auth/auth-state.interface';
@@ -7,14 +8,6 @@ import { LoginRequest } from '../../interfaces/auth/login-request.interface';
 import { LoginResponse } from '../../interfaces/auth/login-response.interface';
 import { User } from '../../interfaces/auth/user.interface';
 import { HttpService } from '../http-service/http';
-
-interface RegisterRequest {
-  username: string;
-  email: string;
-  fullName: string;
-  password: string;
-  role: string;
-}
 
 @Injectable({
   providedIn: 'root'
@@ -79,12 +72,22 @@ export class Auth {
       map(() => void 0),
       catchError(error => {
         console.error('Logout error:', error);
-        // Aún así navegar al login en caso de error
         this.clearAuthData();
         this.router.navigate(['/auth/login']);
         return of(void 0);
       })
     );
+  }
+
+  forceLogout(reason?: string): void {
+    if (!environment.production && reason) {
+      console.warn(`Force logout triggered: ${reason}`);
+    }
+    
+    this.clearAuthData();
+    this.router.navigate(['/auth/login'], { 
+      queryParams: reason ? { reason } : {} 
+    });
   }
 
   isUserAuthenticated(): Observable<boolean> {
