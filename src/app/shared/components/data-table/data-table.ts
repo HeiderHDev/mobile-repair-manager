@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, input, OnDestroy, output, signal, effect } from '@angular/core';
+import { Component, computed, effect, inject, input, OnDestroy, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { BaseEntity } from '@shared/interfaces/table/base-entity.interface';
+import { PaginatedResponse } from '@shared/interfaces/table/pagination-response.interface';
 import { TableAction } from '@shared/interfaces/table/table-action.interface';
 import { TableConfig } from '@shared/interfaces/table/table-config.interface';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -9,22 +10,11 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { PopoverModule } from 'primeng/popover';
 import { TableModule, TablePageEvent } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
-
-export interface PaginatedResponse<T> {
-  page: number;
-  limit: number;
-  total: number;
-  next: string | null;
-  prev: string | null;
-  customers?: T[];
-  repairs?: T[];
-  items?: T[];
-  data?: T[];
-}
 
 @Component({
   selector: 'app-data-table',
@@ -37,71 +27,150 @@ export interface PaginatedResponse<T> {
     CardModule,
     TagModule,
     ConfirmDialogModule,
-    TooltipModule
+    TooltipModule,
+    PopoverModule
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './data-table.html',
   styles: [`
-    :host ::ng-deep .p-button-sm {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-    }
-    
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-      padding: 0.75rem;
+      padding: 0.75rem 0.5rem;
+      vertical-align: middle;
     }
     
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-      padding: 0.75rem;
+      padding: 0.75rem 0.5rem;
       font-weight: 600;
     }
 
-    :host ::ng-deep .action-buttons {
-      @apply flex gap-1 justify-center;
+    :host ::ng-deep .actions-column {
+      width: 120px;
+      min-width: 120px;
+      max-width: 120px;
     }
 
-    :host ::ng-deep .p-button.p-button-sm {
-      @apply px-2 py-1 text-xs font-medium rounded-md transition-all duration-200;
+    :host ::ng-deep .actions-container {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: nowrap;
     }
 
-    :host ::ng-deep .p-button-primary {
-      @apply bg-blue-600 hover:bg-blue-700 border-blue-600 hover:border-blue-700;
+    :host ::ng-deep .action-button {
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      border-radius: 0.375rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    :host ::ng-deep .p-button-info {
-      @apply bg-cyan-600 hover:bg-cyan-700 border-cyan-600 hover:border-cyan-700;
+    :host ::ng-deep .actions-overflow {
+      position: relative;
     }
 
-    :host ::ng-deep .p-button-success {
-      @apply bg-green-600 hover:bg-green-700 border-green-600 hover:border-green-700;
+    :host ::ng-deep .more-actions-btn {
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      background: var(--surface-200);
+      color: var(--surface-700);
+      border: 1px solid var(--surface-300);
     }
 
-    :host ::ng-deep .p-button-warning {
-      @apply bg-amber-600 hover:bg-amber-700 border-amber-600 hover:border-amber-700;
+    :host ::ng-deep .more-actions-btn:hover {
+      background: var(--surface-300);
     }
 
-    :host ::ng-deep .p-button-danger {
-      @apply bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700;
+    :host-context(.dark) ::ng-deep .more-actions-btn {
+      background: var(--surface-700);
+      color: var(--surface-200);
+      border-color: var(--surface-600);
     }
 
-    :host ::ng-deep .p-button-secondary {
-      @apply bg-gray-600 hover:bg-gray-700 border-gray-600 hover:border-gray-700;
+    :host-context(.dark) ::ng-deep .more-actions-btn:hover {
+      background: var(--surface-600);
     }
 
-    :host ::ng-deep .p-button:disabled {
-      @apply opacity-50 cursor-not-allowed;
+    .search-container {
+      position: relative;
+      width: 100%;
+      max-width: 300px;
     }
 
-    :host ::ng-deep .p-button:not(:disabled):hover {
-      @apply shadow-md transform scale-105;
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--surface-500);
+      z-index: 2;
     }
 
-    :host ::ng-deep .p-button:focus {
-      @apply ring-2 ring-offset-2 ring-blue-500;
+    .search-input {
+      padding-left: 2.5rem !important;
+      width: 100%;
+      border-radius: 0.5rem;
+      border: 1px solid var(--surface-300);
+      background: var(--surface-0);
+      color: var(--surface-900);
+    }
+
+    :host-context(.dark) .search-input {
+      background: var(--surface-900);
+      color: var(--surface-0);
+      border-color: var(--surface-600);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-500);
+      box-shadow: 0 0 0 2px rgba(var(--primary-500-rgb), 0.2);
     }
 
     .pagination-info {
-      @apply text-sm text-gray-600 dark:text-gray-400 mt-2;
+      font-size: 0.875rem;
+      color: var(--surface-600);
+    }
+
+    :host-context(.dark) .pagination-info {
+      color: var(--surface-400);
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      border-radius: 0.5rem;
+      border: 1px solid var(--surface-200);
+    }
+
+    :host-context(.dark) .table-responsive {
+      border-color: var(--surface-700);
+    }
+
+    @media (max-width: 768px) {
+      :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td,
+      :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.875rem;
+      }
+
+      :host ::ng-deep .actions-column {
+        width: 100px;
+        min-width: 100px;
+        max-width: 100px;
+      }
+
+      :host ::ng-deep .action-button {
+        width: 1.75rem;
+        height: 1.75rem;
+      }
+
+      :host ::ng-deep .more-actions-btn {
+        width: 1.75rem;
+        height: 1.75rem;
+      }
     }
   `]
 })
@@ -208,7 +277,6 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
     this.destroy$.complete();
   }
 
-  // Métodos para determinar el tipo de datos
   private isPaginatedResponse(data: T[] | PaginatedResponse<T>): data is PaginatedResponse<T> {
     return data && typeof data === 'object' && 
            'page' in data && 'limit' in data && 'total' in data;
@@ -280,6 +348,20 @@ export class DataTable<T extends BaseEntity> implements OnDestroy {
     return this.config().actions?.filter(action =>
       action.visible ? action.visible(item) : true
     ) || [];
+  }
+
+  getPrimaryActions(item: T): TableAction<T>[] {
+    const actions = this.getVisibleActions(item);
+    return actions.slice(0, 2);
+  }
+
+  getOverflowActions(item: T): TableAction<T>[] {
+    const actions = this.getVisibleActions(item);
+    return actions.slice(2);
+  }
+
+  hasOverflowActions(item: T): boolean {
+    return this.getOverflowActions(item).length > 0;
   }
 
   getTotalColumns(): number {
